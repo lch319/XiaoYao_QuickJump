@@ -24,3 +24,10 @@ Ps：由于本人主用DO文件管理器，所有还适配了do收藏夹。
 不支持自动弹出的窗口，也可在设置里手动添加：演示图3
 
 支持设置 每次打开另存为对话框时自动跳转到上次跳转的路径，也可设置只固定跳转指定路径
+
+# 致谢
+https://github.com/gepruts/QuickSwitch
+
+https://github.com/ThioJoe/ThioJoe-AHK-Scripts/releases
+
+https://www.autohotkey.com/boards/viewtopic.php?f=6&t=101054
