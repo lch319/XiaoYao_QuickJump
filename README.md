@@ -4,6 +4,7 @@
 Ps：由于本人主用DO文件管理器，所有还适配了do收藏夹。
 
 有任何问题或者建议，欢迎前往 Github 提交 issue。也可加qq群交流：246308937
+b站：https://www.bilibili.com/video/BV1Q9tZzzEP6/
 
 ![功能演示](https://raw.githubusercontent.com/lch319/cangku1/refs/heads/master/%E6%BC%94%E7%A4%BA%E5%9B%BE.gif)
 
