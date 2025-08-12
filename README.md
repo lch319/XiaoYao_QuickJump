@@ -3,7 +3,7 @@
 
 Ps：由于本人主用DO文件管理器，所有还适配了do收藏夹。
 
-有任何问题或者建议，欢迎前往 Github 提交 issue。也可加qq群交流：246308937
+qq群交流：246308937(RunAny快速启动一劳永逸)
 
 b站：https://www.bilibili.com/video/BV1Q9tZzzEP6/
 
