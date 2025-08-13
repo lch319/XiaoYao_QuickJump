@@ -3,7 +3,7 @@
 > 在 Windows 文件对话框中智能跳转资源管理器/TC/DO/XY/Q-Dir 的当前路径
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/lch319/cangku1/refs/heads/master/%E6%BC%94%E7%A4%BA%E5%9B%BE.gif" alt="功能演示" width="70%">
+  <img src="https://raw.githubusercontent.com/lch319/cangku1/refs/heads/master/%E6%BC%94%E7%A4%BA%E5%9B%BE.gif" alt="功能演示" width="100%">
   <br>
   <a href="https://www.bilibili.com/video/BV1Q9tZzzEP6/">▶️ 视频演示</a> | 
   <a href="https://qm.qq.com/q/nXfaKokxEI">💬 QQ群</a>  
