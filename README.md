@@ -1,6 +1,6 @@
 # XiaoYao_快速跳转 - 文件对话框路径直达利器
 
-> 在 Windows 文件对话框中智能跳转资源管理器/TC/DO/XY/Q-Dir 的当前路径
+> 在打开或保存对话框中，快速跳转到当前 资源管理器/TC/DO/XY/Q-Dir中打开的文件夹路径
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/lch319/cangku1/refs/heads/master/%E6%BC%94%E7%A4%BA%E5%9B%BE.gif" alt="功能演示" width="100%">
