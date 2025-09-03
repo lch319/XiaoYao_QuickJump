@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.4.7"
+软件版本号:="4.4.7.1"
 
 ;清除辅助脚本进程
 FileRead,后台隐藏运行脚本记录,%A_Temp%\后台隐藏运行脚本记录.txt
@@ -576,12 +576,18 @@ return
     手动弹出计数++
     $WinID := WinExist("A")
     ;MsgBox,1
-    Firstpath:=Trim(TotalCommander_path() "`n" DirectoryOpus_path("Clipboard SET {sourcepath}") "`n" Explorer_Path() "`n" XYplorer_Path("1"),"`n")
+    Firstpath:=Trim(Explorer_Path() "`n" DirectoryOpus_path("Clipboard SET {sourcepath}") "`n" TotalCommander_path() "`n" XYplorer_Path("1"),"`n")
     ;expath:=Explorer_Path()
     ;dopath:=Trim(DirectoryOpus_path("Clipboard SET {sourcepath}"))
     ;tcpath:=TotalCommander_path()
+    $FolderPath=""
     Loop, parse, Firstpath, `n, `r
-        $FolderPath:=RegExReplace(A_LoopField, "^\((.*?)\)")
+    {
+        if !(RegExMatch(A_LoopField, "^\s*$")){ ;判断是否是空白行
+            $FolderPath:=RTrim( RegExReplace(A_LoopField, "^\((.*?)\)"),"\") ;去掉括号和别名，并去掉结尾的斜杠
+            Break
+        }
+    }
     if ($FolderPath="")
         return
     ;MsgBox,%$FolderPath%
@@ -597,6 +603,7 @@ return
 FeedExplorerOpenSave:
     另存为窗口id值:=$WinID
     跳转目标路径:=$FolderPath
+    ;MsgBox,%跳转目标路径%
     run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -跳转事件 %另存为窗口id值% "%跳转目标路径%"
 
 Return
