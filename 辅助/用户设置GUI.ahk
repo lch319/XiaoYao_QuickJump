@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.4.6"
+窗口标题名:="XiaoYao_快速跳转v4.4.7"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -56,6 +56,10 @@ Return
         IniRead, 窗口字体名称, %软件配置路径%\个人配置.ini,基础配置,窗口字体名称
         IniRead, 窗口字体大小, %软件配置路径%\个人配置.ini,基础配置,窗口字体大小
         IniRead, 窗口透明度, %软件配置路径%\个人配置.ini,基础配置,窗口透明度
+        
+        IniRead, 失效路径显示设置, %软件配置路径%\个人配置.ini,基础配置,失效路径显示设置
+        if (失效路径显示设置="" || 失效路径显示设置="ERROR")
+            失效路径显示设置:="开启"
 
         IniRead, 文件夹名显示在前, %软件配置路径%\个人配置.ini,基础配置,文件夹名显示在前
         if (文件夹名显示在前="" || 文件夹名显示在前="ERROR")
@@ -81,6 +85,18 @@ Return
 选择目标文件夹 ahk_class #32770 ahk_exe dopus.exe
 )"
         }
+
+        IniRead, 屏蔽xiaoyao窗口列表,%软件配置路径%\个人配置.ini,窗口列表2
+        if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
+            屏蔽xiaoyao窗口列表:="
+(
+ahk_exe IDMan.exe
+)"
+        }
+
+        IniRead, 屏蔽xiaoyao程序列表,%软件配置路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
+        if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
+            屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
 
         IniRead, 窗口文本行距, %软件配置路径%\个人配置.ini,基础配置,窗口文本行距
         if (窗口文本行距="" || 窗口文本行距="ERROR")
@@ -133,6 +149,9 @@ Return
 
     自动跳转到默认路径:= 自动跳转到默认路径="关闭"?0:1
     历史路径设为默认路径:= 历史路径设为默认路径="关闭"?0:1
+    
+    
+    失效路径显示设置:= 失效路径显示设置="关闭"?0:1
 
     DO全标签:=DirectoryOpus全标签路径
     DO全标签:= DO全标签="关闭"?0:1
@@ -300,6 +319,14 @@ Return
 
     Gui, 55:Add, Edit, xm yp+30 w400 r9 HScroll -Wrap v常驻窗口窗口列表, %常驻窗口窗口列表%
 
+    Gui, 55:Add, GroupBox, x10 ym+260 cred w420 h215, 窗口列表2[屏蔽自动弹出]
+    Gui, 55:Add, Button, x340 ym+260 w80 g添加窗口到列表2, 添加
+
+    Gui, 55:Add, Edit, xm yp+30 w400 r9 HScroll -Wrap v窗口列表2, %屏蔽xiaoyao窗口列表%
+
+    Gui, 55:Add, GroupBox, x10 ym+475 cred w420 h100, 屏蔽xiaoyao程序列表(英文逗号隔开)
+    Gui, 55:Add, Edit, xm yp+25 w400 h70 v屏蔽xiaoyao程序列表, %屏蔽xiaoyao程序列表%
+
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
@@ -334,6 +361,10 @@ Return
     Gui, 55:Add, Text, xm+%left_margin% yp+35 , 隐藏软件托盘图标[慎改]:可通过编辑 个人配置.ini 恢复
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v隐藏软件托盘图标, %OnOffState%
     GuiControl, Choose, 隐藏软件托盘图标,% 隐藏软件托盘图标+1
+
+    Gui, 55:Add, Text, xm+%left_margin% yp+35 , 失效路径显示(关闭后失效路径将不显示)
+    Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v失效路径显示设置, %OnOffState%
+    GuiControl, Choose, 失效路径显示设置, % 失效路径显示设置+1
 
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
@@ -392,6 +423,7 @@ Return
     IniWrite, %窗口字体名称2%, %软件配置路径%\个人配置.ini,基础配置,窗口字体名称
     IniWrite, %窗口字体大小2%, %软件配置路径%\个人配置.ini,基础配置,窗口字体大小
     IniWrite, %窗口透明度2%, %软件配置路径%\个人配置.ini,基础配置,窗口透明度
+    IniWrite, %失效路径显示设置%, %软件配置路径%\个人配置.ini,基础配置,失效路径显示设置
 
     IniWrite, %文件夹名显示在前%, %软件配置路径%\个人配置.ini,基础配置,文件夹名显示在前
 
@@ -401,9 +433,16 @@ Return
     IniWrite, %初始文本框内容%, %软件配置路径%\个人配置.ini,基础配置,初始文本框内容
     IniWrite, %是否加载图标%, %软件配置路径%\个人配置.ini,基础配置,是否加载图标
     IniWrite, %常用路径最多显示数量%, %软件配置路径%\个人配置.ini,基础配置,常用路径最多显示数量
+    
 
     IniDelete, %软件配置路径%\个人配置.ini,窗口列表1
     IniWrite, %常驻窗口窗口列表%, %软件配置路径%\个人配置.ini,窗口列表1
+
+    IniDelete, %软件配置路径%\个人配置.ini,窗口列表2
+    IniWrite, %窗口列表2%, %软件配置路径%\个人配置.ini,窗口列表2
+
+    IniWrite, %屏蔽xiaoyao程序列表%, %软件配置路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
+
     IniWrite, %窗口文本行距%, %软件配置路径%\个人配置.ini,基础配置,窗口文本行距
     IniWrite, %隐藏软件托盘图标%, %软件配置路径%\个人配置.ini,基础配置,隐藏软件托盘图标
 
@@ -433,16 +472,7 @@ return
 return
 
 添加窗口到列表:
-    ToolTip, 请左键点击目标窗口...
-    Gui,55: Hide
-    KeyWait, LButton, D
-    MouseGetPos,,, 获取WinID
-    WinGetTitle, WinTitle22, ahk_id %获取WinID%
-    WinGetClass, WinClass22, ahk_id %获取WinID%
-    WinGet, WinExe22, ProcessName, ahk_id %获取WinID%
-    ToolTip
-    ; 格式化窗口信息
-    NewEntry := WinTitle22 " ahk_class " WinClass22 " ahk_exe " WinExe22
+    gosub,添加窗口到列表公共部分
     ; 检查是否已存在相同条目
     GuiControlGet, CurrentList,, 常驻窗口窗口列表
     EntryExists := false
@@ -465,9 +495,46 @@ return
 
 return
 
+添加窗口到列表2:
+    gosub,添加窗口到列表公共部分
+    ; 检查是否已存在相同条目
+    GuiControlGet, CurrentList,, 窗口列表2
+    EntryExists := false
+    Loop, Parse, CurrentList, `n
+    {
+        ; 比较忽略前后空格
+        if (Trim(A_LoopField) = Trim(NewEntry)){
+            EntryExists := true
+            break
+        }
+    }
+    Gui,55: show
+    if (!EntryExists){
+        ; 添加到编辑框
+        NewList := CurrentList ? CurrentList "`n" NewEntry : NewEntry
+        GuiControl,, 窗口列表2, %NewList%
+    }else{
+        MsgBox, 64, 提示, 该窗口已存在列表中！, 2
+    }
+return
+
+添加窗口到列表公共部分:
+    ToolTip, 请左键点击目标窗口...
+    Gui,55: Hide
+    KeyWait, LButton, D
+    MouseGetPos,,, 获取WinID
+    WinGetTitle, WinTitle22, ahk_id %获取WinID%
+    WinGetClass, WinClass22, ahk_id %获取WinID%
+    WinGet, WinExe22, ProcessName, ahk_id %获取WinID%
+    ToolTip
+    ; 格式化窗口信息
+    NewEntry := WinTitle22 " ahk_class " WinClass22 " ahk_exe " WinExe22
+return
+
 Menu_Reload:
     Critical
     FileDelete, %A_Temp%\常驻窗口关闭记录.txt
+    FileDelete, %A_Temp%\跳转默认打开记录.txt
     ;Run,%A_AhkPath% /force /restart "%软件配置路径%"
     run,"%软件配置路径%\XiaoYao_快速跳转.exe" "%软件配置路径%\主程序.ahk"
 ExitApp

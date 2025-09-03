@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.4.6"
+软件版本号:="4.4.7"
 
 ;清除辅助脚本进程
 FileRead,后台隐藏运行脚本记录,%A_Temp%\后台隐藏运行脚本记录.txt
@@ -84,6 +84,8 @@ IniRead, 窗口字体名称, %A_ScriptDir%\个人配置.ini,基础配置,窗口�
 IniRead, 窗口字体大小, %A_ScriptDir%\个人配置.ini,基础配置,窗口字体大小
 IniRead, 窗口透明度, %A_ScriptDir%\个人配置.ini,基础配置,窗口透明度
 
+IniRead, 失效路径显示设置, %A_ScriptDir%\个人配置.ini,基础配置,失效路径显示设置
+
 IniRead, 文件夹名显示在前, %A_ScriptDir%\个人配置.ini,基础配置,文件夹名显示在前
 if (文件夹名显示在前="" || 文件夹名显示在前="ERROR")
     文件夹名显示在前:="关闭"
@@ -98,6 +100,10 @@ IniRead, 常用路径最多显示数量, %A_ScriptDir%\个人配置.ini,基础�
 if (常用路径最多显示数量="" || 常用路径最多显示数量="ERROR")
     常用路径最多显示数量:="9"
 
+IniRead, 屏蔽xiaoyao程序列表,%A_ScriptDir%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
+if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
+    屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
+
 IniRead, 常驻窗口窗口列表, %A_ScriptDir%\个人配置.ini,窗口列表1
 if (常驻窗口窗口列表="" || 常驻窗口窗口列表="ERROR"){
     常驻窗口窗口列表:="
@@ -108,6 +114,29 @@ if (常驻窗口窗口列表="" || 常驻窗口窗口列表="ERROR"){
 选择目标文件夹 ahk_class #32770 ahk_exe dopus.exe
 )"
 }
+
+;----------------黑名单窗列表读取-----------
+IniRead, 屏蔽xiaoyao窗口列表,%A_ScriptDir%\个人配置.ini,窗口列表2
+if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
+    屏蔽xiaoyao窗口列表:="
+(
+ahk_exe IDMan.exe
+)"
+}
+;常驻窗口窗口列表:="选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe`n选择 ahk_class #32770 ahk_exe Bandizip.exe"
+; 解析窗口列表到数组
+windows2 := []
+Loop, Parse, 屏蔽xiaoyao窗口列表, `n, `r
+{
+    if not (RegExMatch(A_LoopField, "^\s*$"))  ; 跳过空行
+        windows2.Push(Trim(A_LoopField))
+}
+Loop, Parse, 屏蔽xiaoyao程序列表, `,
+{
+    if not (RegExMatch(A_LoopField, "^\s*$"))  ; 跳过空行
+        windows2.Push(Trim("ahk_exe " A_LoopField))
+}
+;----------------黑名单窗列表读取-----------
 
 IniRead, 窗口文本行距, %A_ScriptDir%\个人配置.ini,基础配置,窗口文本行距
 if (窗口文本行距="" || 窗口文本行距="ERROR")
@@ -147,58 +176,21 @@ Menu,Tray,add,退出(&E),Menu_Exit
 ;------------------ 快捷键弹出设置 ------------------
 global processList2:="ahk_class Qt5QWindowIcon`n" 常驻窗口窗口列表
 
-;全局热键
+Hotkey, If,WinActiveList(屏蔽xiaoyao程序列表)
 if not (菜单全局热键="" || 菜单全局热键="ERROR")
     Hotkey, %菜单全局热键%, ShowMenu2
 if not (常驻窗口全局热键="" || 常驻窗口全局热键="ERROR")
     Hotkey, %常驻窗口全局热键%, 打开常驻搜索窗口2
+Hotkey, If
 
-/*
-Hotkey, IfWinActive, ahk_class #32770
+Hotkey, If,WinActiveList2(屏蔽xiaoyao程序列表)
 if not (热键="" || 热键="ERROR")
-    Hotkey, %热键%, ShowMenu ; 创建仅在#32770中有效的热键.
-Hotkey, IfWinActive
-
-Hotkey, IfWinActive, ahk_class #32770
+    Hotkey, %热键%, ShowMenu
 if not (一键跳转热键="" || 一键跳转热键="ERROR")
     Hotkey, %一键跳转热键%, 一键跳转路径
-Hotkey, IfWinActive
-
-Hotkey, IfWinActive, ahk_class #32770
 if not (常驻搜索窗口呼出热键="" || 常驻搜索窗口呼出热键="ERROR")
     Hotkey, %常驻搜索窗口呼出热键%, 打开常驻搜索窗口
-Hotkey, IfWinActive
-*/
-
-Loop, parse, processList, `n, `r
-{
-    if (RegExMatch(A_LoopField, "^\s*$")) ;匹配空白行
-        continue
-    Hotkey, IfWinActive, %A_LoopField%
-    if not (热键="" || 热键="ERROR")
-        Hotkey, %热键%, ShowMenu
-
-    if not (一键跳转热键="" || 一键跳转热键="ERROR")
-        Hotkey, %一键跳转热键%, 一键跳转路径
-
-    if not (常驻搜索窗口呼出热键="" || 常驻搜索窗口呼出热键="ERROR")
-        Hotkey, %常驻搜索窗口呼出热键%, 打开常驻搜索窗口
-
-    Hotkey, IfWinActive
-}
-
-Loop, parse, processList2, `n, `r
-{
-    if (RegExMatch(A_LoopField, "^\s*$")) ;匹配空白行
-        continue
-    Hotkey, IfWinActive, %A_LoopField%
-    if not (热键="" || 热键="ERROR")
-        Hotkey, %热键%, ShowMenu2
-    if not (常驻搜索窗口呼出热键="" || 常驻搜索窗口呼出热键="ERROR")
-        Hotkey, %常驻搜索窗口呼出热键%, 打开常驻搜索窗口2
-
-    Hotkey, IfWinActive
-}
+Hotkey, If
 
 ;------------------ 自动弹出菜单设置 ------------------
 ;If (自动弹出常驻窗口="开启")
@@ -224,7 +216,24 @@ If (自动弹出菜单="开启"){
     {
         WinWaitActive, ahk_class #32770
         sleep, %延迟自动弹出时间%
-        if WinActive("ahk_class #32770") && not WinActive("ahk_exe IDMan.exe"){
+        if WinActive("ahk_class #32770"){
+            ;----------------黑名单窗口跳过-----------
+            for index, winTitle2 in windows2
+            {
+                ;检查窗口是否存在
+                ;MsgBox, %winTitle2%
+                if WinActive(winTitle2){
+                    黑名单窗口:="1"
+                    Break
+                }
+            }
+            if (黑名单窗口="1"){
+                黑名单窗口:="0"
+                ;MsgBox, 1
+                Continue
+            }
+            ;----------------黑名单窗口跳过-----------
+
             WinID2 := WinExist("A")
 
             sleep, 100
@@ -360,17 +369,23 @@ ShowMenu:
             Menu ContextMenu, Add, (&M)更多常用, :更多常用
             if (是否加载图标 !="关闭")
                 Menu ContextMenu, Icon,(&M)更多常用, shell32.dll, 44
-            Menu, 更多常用, Add, %A_LoopField%, Choice
-            if (是否加载图标 !="关闭")
-                Menu, 更多常用, Icon,%A_LoopField%, shell32.dll, 44
+            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+                Menu, 更多常用, Add, %A_LoopField%, Choice
+                if (是否加载图标 !="关闭")
+                    Menu, 更多常用, Icon,%A_LoopField%, shell32.dll, 44
+            }
         }Else if (A_Index > (常用路径最多显示数量 + 1)){
-            Menu, 更多常用, Add, %A_LoopField%, Choice
-            if (是否加载图标 !="关闭")
-                Menu, 更多常用, Icon,%A_LoopField%, shell32.dll, 44
+            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+                Menu, 更多常用, Add, %A_LoopField%, Choice
+                if (是否加载图标 !="关闭")
+                    Menu, 更多常用, Icon,%A_LoopField%, shell32.dll, 44
+            }
         }Else{
-            Menu ContextMenu, Add, (&%A_index%)%A_LoopField%, Choice
-            if (是否加载图标 !="关闭")
-                Menu ContextMenu, Icon,(&%A_index%)%A_LoopField%, shell32.dll, 44 ;44也可以
+            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+                Menu ContextMenu, Add, (&%A_index%)%A_LoopField%, Choice
+                if (是否加载图标 !="关闭")
+                    Menu ContextMenu, Icon,(&%A_index%)%A_LoopField%, shell32.dll, 44 ;44也可以
+            }
         }
     }
     ; ------------------ 历史打开 ------------------
@@ -389,9 +404,11 @@ ShowMenu:
             Loop, parse, 历史跳转, `n, `r
             {
                 if !(RegExMatch(A_LoopField, "^\s*$")){ ;判断是否是空白行
-                    Menu, 历史打开1, Add, %A_LoopField%, Choice
-                    if (是否加载图标 !="关闭")
-                        Menu, 历史打开1, Icon,%A_LoopField%, shell32.dll, 4
+                    if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+                        Menu, 历史打开1, Add, %A_LoopField%, Choice
+                        if (是否加载图标 !="关闭")
+                            Menu, 历史打开1, Icon,%A_LoopField%, shell32.dll, 4
+                    }
                 }
             }
         }
@@ -408,9 +425,11 @@ ShowMenu:
             Loop, parse, do收藏夹所有路径, `n, `r
             {
                 if !(RegExMatch(A_LoopField, "^\s*$")){ ;判断是否是空白行
-                    Menu, do收藏夹, Add, %A_LoopField%, Choice
-                    if (是否加载图标 !="关闭")
-                        Menu, do收藏夹, Icon,%A_LoopField%, shell32.dll, 4
+                    if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+                        Menu, do收藏夹, Add, %A_LoopField%, Choice
+                        if (是否加载图标 !="关闭")
+                            Menu, do收藏夹, Icon,%A_LoopField%, shell32.dll, 4
+                    }
                 }
             }
         }
@@ -443,6 +462,8 @@ ShowMenu:
         Menu, 更多设置项, Disable, 设置 默认路径
         Menu, 更多设置项, Disable, 查看 当前自动跳转路径
     }
+    Menu, 更多设置项, Add
+    Menu, 更多设置项, Add, 在该程序中禁用xiaoyao, 在该程序中禁用xiaoyao
 
     Menu, 更多设置项, Add
     Menu, 更多设置项, Add, 设置(&D), 打开设置
@@ -723,6 +744,15 @@ return
 return
 
 检查窗口列表:
+    ;----------------黑名单窗口跳过-----------
+    for index, winTitle2 in windows2
+    {
+        ;检查窗口是否存在
+        if WinActive(winTitle2)
+            Return
+    }
+    ;----------------黑名单窗口跳过-----------
+
     for index, winTitle in windows
     {
         ; 检查窗口是否存在
@@ -817,4 +847,70 @@ return
     if (默认路径="ERROR")
         默认路径:= ""
     默认路径:=ReplaceVars(默认路径)
+return
+
+; 检查窗口处于激活状态
+WinActiveList(窗口列表1111){
+    excludedProcesses := StrSplit(窗口列表1111, "`,")    ; 将窗口列表按 , 分割成数组
+    ; 遍历检查是否匹配
+    for index, process in excludedProcesses {
+        if WinActive("ahk_exe " process)
+            return false  ; 找到匹配项，返回 true
+    }
+
+    窗口列表2222:=processList "`n" processList2
+    ;MsgBox, % 窗口列表2222
+    SetTitleMatchMode, 2  ; 使用部分匹配窗口标题
+    excludedProcesses2 := StrSplit(窗口列表2222, "`n")    ; 将窗口列表按 , 分割成数组
+    ; 遍历检查是否匹配
+    for index, process in excludedProcesses2 {
+        if WinActive(process){
+            ;MsgBox, 1
+            return false  ; 找到匹配项，返回 true
+        }
+    }
+
+    return true  ; 无匹配项，返回 false
+}
+
+; 检查窗口处于激活状态
+WinActiveList2(窗口列表1111){
+    屏蔽程序:=""
+    窗口列表2222:=processList "`n" processList2
+    ;MsgBox, % 窗口列表2222
+    excludedProcesses := StrSplit(窗口列表1111, "`,")    ; 将窗口列表按 换行 分割成数组
+    ; 遍历检查是否匹配
+    for index, process in excludedProcesses {
+        if WinActive("ahk_exe " process)
+            屏蔽程序:="是"
+        Break
+    }
+
+    if (屏蔽程序 !="是"){
+        ;MsgBox, % 窗口列表2222
+        SetTitleMatchMode, 2  ; 使用部分匹配窗口标题
+        excludedProcesses2 := StrSplit(窗口列表2222, "`n")    ; 将窗口列表按 , 分割成数组
+        ; 遍历检查是否匹配
+        for index, process in excludedProcesses2 {
+            if WinActive(process)
+                return true  ; 找到匹配项，返回 true
+        }
+    }
+    return false  ; 无匹配项，返回 false
+}
+
+#if WinActiveList(屏蔽xiaoyao程序列表)
+
+#if
+
+#if WinActiveList2(屏蔽xiaoyao程序列表)
+
+#if
+
+在该程序中禁用xiaoyao:
+    WinGet, WinExe22, ProcessName, ahk_id %$WinID%
+    NewList2 := RemoveDuplicateLines(屏蔽xiaoyao程序列表 "`," WinExe22,jiangeci:="`,")
+    IniWrite, %NewList2%, %A_ScriptDir%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
+    run,"%A_ScriptDir%\XiaoYao_快速跳转.exe" "%A_ScriptDir%\主程序.ahk"
+;MsgBox, %NewList2%
 return

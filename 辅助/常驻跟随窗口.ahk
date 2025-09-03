@@ -8,7 +8,6 @@ SetWinDelay, -1 ;设置在每次执行窗口命令,使用 -1 表示无延时
 SetBatchLines, -1   ;让操作以最快速度进行.
 SetTimer, ExitScript, -5000 ; 设置5秒后执行退出函数
 
-
 ;F1::
 ;global 参数1 := "-常驻窗口跟随"
 ;global 参数2 := "0x700404"
@@ -73,6 +72,7 @@ if (参数1="-常驻窗口跟随"){
 
         IniRead, 历史跳转保留数, %软件安装路径%\个人配置.ini,基础配置,历史跳转保留数
 
+        IniRead, 自动弹出常驻窗口, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口
         IniRead, 窗口初始坐标x, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标x
         IniRead, 窗口初始坐标y, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标y
         IniRead, 窗口初始宽度, %软件安装路径%\个人配置.ini,基础配置,窗口初始宽度
@@ -85,10 +85,23 @@ if (参数1="-常驻窗口跟随"){
         IniRead, 文件夹名显示在前, %软件安装路径%\个人配置.ini,基础配置,文件夹名显示在前
         IniRead, 全局性菜单项功能, %软件安装路径%\个人配置.ini,基础配置,全局性菜单项功能
         IniRead, 初始文本框内容, %软件安装路径%\个人配置.ini,基础配置,初始文本框内容
+        IniRead, 失效路径显示设置, %软件安装路径%\个人配置.ini,基础配置,失效路径显示设置
 
         IniRead, 窗口文本行距, %软件安装路径%\个人配置.ini,基础配置,窗口文本行距
         if (窗口文本行距="" || 窗口文本行距="ERROR")
             窗口文本行距:= "20"
+
+        IniRead, 屏蔽xiaoyao窗口列表, %软件安装路径%\个人配置.ini,窗口列表2
+        if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
+            屏蔽xiaoyao窗口列表:="
+(
+ahk_exe IDMan.exe
+)"
+        }
+
+        IniRead, 屏蔽xiaoyao程序列表,%软件安装路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
+        if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
+            屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
 
     }
     ;-------------------------------------------------------------------
@@ -253,6 +266,7 @@ Return
 Return
 全部目录路径:
     gosub,将所有内容路径加入到数组
+    gosub,将所有内容路径加入到数组2
     实时Text:= 换行符转换为竖杠(Trim(移除空白行(合并所有路径),"`n"))
     GuiControl, , % 文本框ID, % "|" 实时Text
     GuiControl, Choose, % 文本框ID, 1
@@ -360,6 +374,18 @@ Return
         if (自动跳转到默认路径="关闭")
             Menu, searchbox, Disable, 查看 当前自动跳转路径
     */
+    Menu, searchbox, Add
+
+    if (自动弹出常驻窗口="开启"){
+        gosub,获取窗口信息
+        if (!EntryExists)
+            Menu, searchbox, Add, 禁止当前窗口自动弹出, 禁止当前窗口自动弹出
+        Else{
+            Menu, searchbox, Add, 禁止当前窗口自动弹出, 禁止当前窗口自动弹出
+            Menu, searchbox, Icon, 禁止当前窗口自动弹出, shell32.dll, 145
+        }
+    }
+    Menu, searchbox, Add, 在该程序中禁用xiaoyao, 在该程序中禁用xiaoyao
 
     Menu, searchbox, Add
     Menu, searchbox, Add, 设置(&D), 设置可视化
@@ -417,8 +443,9 @@ Return
 读取配置跳转方式:
 
     if not FileExist(跳转目标路径){
-        ttip("路径不存在: "跳转目标路径,3000)
-        Return
+        ttip("网络路径 或 路径不存在: "跳转目标路径,3000)
+        ;MsgBox, 1
+        ;Return
     }
     ;MsgBox, 跳转目标路径: %跳转目标路径%`n另存为窗口id值: %另存为窗口id值%`n跳转方式: %跳转方式%
 
@@ -639,13 +666,15 @@ return
     qdir所有路径:=""
 
     global 历史所有路径:= HistoryOpenPath(软件安装路径)
+    if (失效路径显示设置 ="关闭")
+        历史所有路径:= FilterExistingPaths(历史所有路径)
 
     DetectHiddenWindows,Off
     if WinExist("ahk_exe explorer.exe ahk_class CabinetWClass")
         资管所有路径:=Explorer_Path() "`n" Explorer_Path全部()
 
     if WinExist("ahk_exe dopus.exe")
-        do所有路径:=Trim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" DirectoryOpusgetinfo()
+        do所有路径:=RTrim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" DirectoryOpusgetinfo()
 
     if WinExist("ahk_class TTOTAL_CMD")
         tc所有路径:= TotalCommander_path("1") "`n" TotalCommander_path("2")
@@ -655,7 +684,11 @@ return
 
     IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
     自定义常用路径:=ReplaceVars(自定义常用路径2)
+    if (失效路径显示设置 ="关闭")
+        自定义常用路径:= FilterExistingPaths(自定义常用路径)
+ 
     常用所有路径:= 自定义常用路径
+
 
     if (文件夹名显示在前="开启"){
         资管所有路径 := 给行首加文件名(资管所有路径)
@@ -671,9 +704,11 @@ return
 将所有内容路径加入到数组2:
 
     global 获取到的do收藏夹路径:=""
-    if (DO的收藏夹="开启")
+    if (DO的收藏夹="开启"){
         获取到的do收藏夹路径:=DirectoryOpusgetfa()
-
+    if (失效路径显示设置 ="关闭")
+        获取到的do收藏夹路径:= FilterExistingPaths(获取到的do收藏夹路径)
+}
     if (文件夹名显示在前="开启"){
         获取到的do收藏夹路径 := 给行首加文件名(获取到的do收藏夹路径)
     }
@@ -776,5 +811,70 @@ return
 }
 
 ExitScript:
-    ExitApp ; 退出脚本
+ExitApp ; 退出脚本
+return
+
+获取窗口信息:
+
+    IniRead, 屏蔽xiaoyao窗口列表, %软件安装路径%\个人配置.ini,窗口列表2
+    if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
+        屏蔽xiaoyao窗口列表:="
+(
+ahk_exe IDMan.exe
+)"
+    }
+
+    WinGetTitle, WinTitle22, ahk_id %参数2%
+    WinGetClass, WinClass22, ahk_id %参数2%
+    WinGet, WinExe22, ProcessName, ahk_id %参数2%
+    ; 格式化窗口信息
+    NewEntry := WinTitle22 " ahk_class " WinClass22 " ahk_exe " WinExe22
+
+    ; 检查是否已存在相同条目
+
+    EntryExists := false
+    Loop, Parse, 屏蔽xiaoyao窗口列表, `n, `r
+    {
+        ; 比较忽略前后空格
+        if (Trim(A_LoopField) = Trim(NewEntry)){
+            EntryExists := true
+            break
+        }
+    }
+Return
+
+禁止当前窗口自动弹出:
+    gosub,获取窗口信息
+
+    if (!EntryExists){
+        ; 添加到编辑框
+        NewList := 屏蔽xiaoyao窗口列表 ? 屏蔽xiaoyao窗口列表 "`n" NewEntry : NewEntry
+        ;MsgBox,% NewList
+        IniDelete, %软件安装路径%\个人配置.ini,窗口列表2
+        IniWrite, %NewList%, %软件安装路径%\个人配置.ini,窗口列表2
+        run,"%软件安装路径%\XiaoYao_快速跳转.exe" "%软件安装路径%\主程序.ahk"
+    }Else{
+        ; 如果已存在，则从编辑框中移除
+        NewList := ""
+        Loop, Parse, 屏蔽xiaoyao窗口列表, `n, `r
+        {
+            if !(Trim(A_LoopField) = Trim(NewEntry)){
+                NewList .= (NewList ? "`n" : "") A_LoopField
+            }
+        }
+
+        ;MsgBox,2%NewList%
+        IniDelete, %软件安装路径%\个人配置.ini,窗口列表2
+        IniWrite, %NewList%, %软件安装路径%\个人配置.ini,窗口列表2
+        run,"%软件安装路径%\XiaoYao_快速跳转.exe" "%软件安装路径%\辅助\自动弹出常驻窗口.ahk"
+    }
+
+return
+
+在该程序中禁用xiaoyao:
+    WinGet, WinExe22, ProcessName, ahk_id %参数2%
+    NewList2 := RemoveDuplicateLines(屏蔽xiaoyao程序列表 "`," WinExe22,jiangeci:="`,")
+    IniWrite, %NewList2%, %软件安装路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
+    run,"%软件安装路径%\XiaoYao_快速跳转.exe" "%软件安装路径%\主程序.ahk"
+;MsgBox, %NewList2%
 return

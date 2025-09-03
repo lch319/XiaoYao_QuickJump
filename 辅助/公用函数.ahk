@@ -400,7 +400,7 @@ DirectoryOpusgetinfo(){
             if (RegExMatch(A_LoopField, 正则, do标签路径)){
                 if not FileExist(do标签路径1)
                     do标签路径1:=StrReplace(do标签路径1, "`&amp`;", "`&")
-                do标签路径1:=Trim(do标签路径1,"\")
+                do标签路径1:=RTrim(do标签路径1,"\")
                 do所以标签路径 .= do标签路径1 "`n"
             }
         }
@@ -435,7 +435,7 @@ DirectoryOpusgetfa(){
                         do收藏夹路径1:= ""
                 }
             }
-            do收藏夹路径1:=Trim(do收藏夹路径1,"\")
+            do收藏夹路径1:=RTrim(do收藏夹路径1,"\")
             do所有收藏夹路径 .= do收藏夹路径1 "`n"
         }
     }
@@ -595,10 +595,10 @@ RemoveDuplicateLines(str,jiangeci:="`n",yange:="0"){
             trimmedLine := Trim(line," `t`r")  ; 去掉行首尾的空白字符
         if (uniqueLines[trimmedLine] = "") {
             uniqueLines[trimmedLine] := true  ; 如果该行还没有出现过，标记为已出现
-            result .= trimmedLine . "`n"  ; 将唯一行添加到结果中
+            result .= trimmedLine . jiangeci  ; 将唯一行添加到结果中
         }
     }
-    Return RTrim(result,"`n")
+    Return RTrim(result,jiangeci)
 }
 
 ;=============================换行转换为|分隔=======================
@@ -1859,4 +1859,15 @@ class RemoteTreeView
             , "Int")
     }
 
+}
+
+FilterExistingPaths(paths) {
+    existingPaths := ""
+    Loop, Parse, paths, `n, `r  ; 处理Windows（`r`n）和Unix（`n）换行符
+    {
+        currentPath := Trim(A_LoopField)  ; 移除两端空格和换行符
+        if (currentPath != "" && FileExist(currentPath))  ; 检查非空且路径存在
+            existingPaths .= currentPath . "`n"
+    }
+    return Trim(existingPaths, "`n")  ; 移除末尾多余的换行符
 }

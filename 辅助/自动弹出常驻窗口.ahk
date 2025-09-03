@@ -6,12 +6,17 @@ SetBatchLines, -1   ;让操作以最快速度进行.
 
 SplitPath, A_ScriptDir, , parentDir
 global 软件安装路径:= parentDir
+SetTitleMatchMode, 2  ; 使用部分匹配窗口标题
 
 IniRead, 自动弹出常驻窗口, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口
 IniRead, 自动跳转到默认路径, %软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
 IniRead, 默认路径, %软件安装路径%\个人配置.ini,基础配置,默认路径
 默认路径:=ReplaceVars(默认路径)
-IniRead, 历史路径设为默认路径, %软件安装路径%\个人配置.ini,基础配置,历史路径设为默认路径
+IniRead, 历史路径设为默认路径, %软件安装路径%\个人配置.ini,基础配置,历史路径
+
+IniRead, 屏蔽xiaoyao程序列表,%软件安装路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
+    if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
+            屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
 
 IniRead, 常驻窗口窗口列表,%软件安装路径%\个人配置.ini,窗口列表1
 if (常驻窗口窗口列表="" || 常驻窗口窗口列表="ERROR"){
@@ -23,6 +28,37 @@ if (常驻窗口窗口列表="" || 常驻窗口窗口列表="ERROR"){
 选择目标文件夹 ahk_class #32770 ahk_exe dopus.exe
 )"
 }
+;常驻窗口窗口列表:="选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe`n选择 ahk_class #32770 ahk_exe Bandizip.exe"
+; 解析窗口列表到数组
+windows := []
+Loop, Parse, 常驻窗口窗口列表, `n, `r
+{
+    if not (RegExMatch(A_LoopField, "^\s*$"))  ; 跳过空行
+        windows.Push(Trim(A_LoopField))
+}
+
+;----------------黑名单窗列表读取-----------
+IniRead, 屏蔽xiaoyao窗口列表,%软件安装路径%\个人配置.ini,窗口列表2
+if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
+    屏蔽xiaoyao窗口列表:="
+(
+ahk_exe IDMan.exe
+)"
+}
+;常驻窗口窗口列表:="选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe`n选择 ahk_class #32770 ahk_exe Bandizip.exe"
+; 解析窗口列表到数组
+windows2 := []
+Loop, Parse, 屏蔽xiaoyao窗口列表, `n, `r
+{
+    if not (RegExMatch(A_LoopField, "^\s*$"))  ; 跳过空行
+        windows2.Push(Trim(A_LoopField))
+}
+Loop, Parse, 屏蔽xiaoyao程序列表, `,
+{
+    if not (RegExMatch(A_LoopField, "^\s*$"))  ; 跳过空行
+        windows2.Push(Trim("ahk_exe " A_LoopField))
+}
+;----------------黑名单窗列表读取-----------
 
 IniRead, 自动弹出常驻窗口次数, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口次数
 if (自动弹出常驻窗口次数="" || 自动弹出常驻窗口次数="ERROR")
@@ -34,25 +70,37 @@ if (自动弹出常驻窗口 != "开启") and (自动跳转到默认路径 != "�
 
 OnExit, 退出时运行
 
-;常驻窗口窗口列表:="选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe`n选择 ahk_class #32770 ahk_exe Bandizip.exe"
-; 解析窗口列表到数组
-windows := []
-Loop, Parse, 常驻窗口窗口列表, `n, `r
-{
-    if not (RegExMatch(A_LoopField, "^\s*$"))  ; 跳过空行
-        windows.Push(Trim(A_LoopField))
-}
 ; 设置定时器检查窗口（每秒检查一次）
-SetTitleMatchMode, 2  ; 使用部分匹配窗口标题
+
 SetTimer, 检查窗口列表, 10
 
 ReplaceBrowseForFolder(true)
 
 loop
 {
+    黑名单窗口:="0"
     WinWaitActive, ahk_class #32770
     ;sleep, 200
-    if WinActive("ahk_class #32770") && not WinActive("ahk_exe IDMan.exe"){
+    ;MsgBox, %黑名单窗口%
+    if WinActive("ahk_class #32770"){
+        ;----------------黑名单窗口跳过-----------
+        for index, winTitle2 in windows2
+        {
+            ;检查窗口是否存在
+            ;MsgBox, %winTitle2%
+            if WinActive(winTitle2){
+                黑名单窗口:="1"
+                Break
+            }
+        }
+        if (黑名单窗口="1"){
+            黑名单窗口:="0"
+            ;MsgBox, 1
+            Continue
+        }
+
+        ;----------------黑名单窗口跳过-----------
+
         WinID2 := WinExist("A")
 
         IniRead, 自动跳转到默认路径, %软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
@@ -232,6 +280,15 @@ ReplaceVars(str) {
 }
 
 检查窗口列表:
+    ;----------------黑名单窗口跳过-----------
+    for index, winTitle2 in windows2
+    {
+        ;检查窗口是否存在
+        if WinActive(winTitle2)
+            Return
+    }
+    ;----------------黑名单窗口跳过-----------
+
     for index, winTitle in windows
     {
         ; 检查窗口是否存在
