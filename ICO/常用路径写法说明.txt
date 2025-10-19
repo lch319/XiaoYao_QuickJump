@@ -1,0 +1,32 @@
+一、常用路径填写格式【示例】：
+
+D:\下载
+D:\软件
+%A_Desktop%
+%A_MyDocuments%
+ahk_exe QQ.exe=D:\软件\安装版
+ahk_exe QQ.exe=D:\软件\单文件
+ahk_exe dopus.exe=D:\软件\绿色版
+ahk_exe Weixin.exe=D:\软件\绿色版
+
+
+	1.支持"程序专属路径"，仅在指定程序才显示的常用路径，达到不同程序显示不同路径的目的。
+		填写格式为：ahk_exe 程序名=文件夹路径    比如：ahk_exe QQ.exe=C:\
+	
+	2.支持替换双斜杠\\ 单反斜杠/ 为单斜杠\ 并移除双引号[默认关闭，需高级设置里手动开启]
+		D:\\软件\\XiaoYao_快速跳转
+		D:/软件/QQ
+		"D:\软件\Weixin"
+	
+	3.常见的ahk内置变量：更多请查阅 https://wyagd001.github.io/zh-cn/docs/Variables.htm#BuiltIn
+		A_Desktop	用户的"桌面"文件夹路径
+		A_MyDocuments	用户的"我的文档"文件夹路径
+		A_AppData	当前用户的应用数据文件夹路径（例如 C:\Users\Username\AppData\Roaming），常用于存放配置文件
+		A_ScriptDir	当前脚本所在目录的绝对路径，不包含末尾的反斜杠
+		
+		A_YYYY	4 位数表示的当前年份(例如 2004)
+		A_MM	2 位数表示的当前月份(01-12)
+		A_DD	2 位数表示的当前月份的日期(01-31)
+		A_Hour	在 24 小时制(例如, 17 表示 5pm) 中 2 位数表示的当前小时数(00-23)
+		A_Min	2 位数表示的当前分钟数(00-59).
+		A_Sec	2 位数表示的当前秒数(00-59).

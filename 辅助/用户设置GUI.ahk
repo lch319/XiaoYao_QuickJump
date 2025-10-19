@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.4.7.1"
+窗口标题名:="XiaoYao_快速跳转v4.4.8"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -29,6 +29,10 @@ Return
 
         IniRead, 自定义常用路径2, %软件配置路径%\个人配置.ini,常用路径
         自定义常用路径:=ReplaceVars(自定义常用路径2)
+
+        IniRead, 替换双斜杠单反斜杠双引号, %软件配置路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
+        if (替换双斜杠单反斜杠双引号="" || 替换双斜杠单反斜杠双引号="ERROR")
+            替换双斜杠单反斜杠双引号:="关闭"
 
         IniRead, DirectoryOpus全标签路径, %软件配置路径%\个人配置.ini,基础配置,DirectoryOpus全标签路径
 
@@ -56,7 +60,7 @@ Return
         IniRead, 窗口字体名称, %软件配置路径%\个人配置.ini,基础配置,窗口字体名称
         IniRead, 窗口字体大小, %软件配置路径%\个人配置.ini,基础配置,窗口字体大小
         IniRead, 窗口透明度, %软件配置路径%\个人配置.ini,基础配置,窗口透明度
-        
+
         IniRead, 失效路径显示设置, %软件配置路径%\个人配置.ini,基础配置,失效路径显示设置
         if (失效路径显示设置="" || 失效路径显示设置="ERROR")
             失效路径显示设置:="开启"
@@ -149,9 +153,10 @@ Return
 
     自动跳转到默认路径:= 自动跳转到默认路径="关闭"?0:1
     历史路径设为默认路径:= 历史路径设为默认路径="关闭"?0:1
-    
-    
+
     失效路径显示设置:= 失效路径显示设置="关闭"?0:1
+
+    替换双斜杠单反斜杠双引号:= 替换双斜杠单反斜杠双引号="关闭"?0:1
 
     DO全标签:=DirectoryOpus全标签路径
     DO全标签:= DO全标签="关闭"?0:1
@@ -239,6 +244,8 @@ Return
     GuiControl, Choose, 是否加载图标,% 是否加载图标+1
 
     Gui, 55:Add, GroupBox, xm y+10 w%group_width_55% h190, 常用路径设置【支持ahk内置变量 写法：`%A_Desktop`%】
+    Gui, 55:Add, Text,Cblue x375 yp w70 g打开使用文档, 更多写法:
+
     Gui, 55:Add, Edit, xm+%left_margin% yp+20 w400 r9 v常用路径1, %常用路径1%
 
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
@@ -366,6 +373,10 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v失效路径显示设置, %OnOffState%
     GuiControl, Choose, 失效路径显示设置, % 失效路径显示设置+1
 
+    Gui, 55:Add, Text, xm+%left_margin% yp+35 , 常用路径填写：替换\\和/为\ 并删除双引号
+    Gui, 55:Add, DropDownList, x+5 yp-4 w%text_width% v替换双斜杠单反斜杠双引号, %OnOffState%
+    GuiControl, Choose, 替换双斜杠单反斜杠双引号, % 替换双斜杠单反斜杠双引号+1
+
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
@@ -433,7 +444,6 @@ Return
     IniWrite, %初始文本框内容%, %软件配置路径%\个人配置.ini,基础配置,初始文本框内容
     IniWrite, %是否加载图标%, %软件配置路径%\个人配置.ini,基础配置,是否加载图标
     IniWrite, %常用路径最多显示数量%, %软件配置路径%\个人配置.ini,基础配置,常用路径最多显示数量
-    
 
     IniDelete, %软件配置路径%\个人配置.ini,窗口列表1
     IniWrite, %常驻窗口窗口列表%, %软件配置路径%\个人配置.ini,窗口列表1
@@ -449,6 +459,7 @@ Return
     IniWrite, %自动跳转到默认路径%, %软件配置路径%\个人配置.ini,基础配置,自动跳转到默认路径
     IniWrite, %历史路径设为默认路径%, %软件配置路径%\个人配置.ini,基础配置,历史路径设为默认路径
     IniWrite, %默认路径%, %软件配置路径%\个人配置.ini,基础配置,默认路径
+    IniWrite, %替换双斜杠单反斜杠双引号%, %软件配置路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
 
     gosub, Menu_Reload
 Return
@@ -467,6 +478,13 @@ return
 打开设置2:
     if FileExist(软件配置路径 "\个人配置.ini")
         run,%软件配置路径%\个人配置.ini
+    Else
+        run,%软件配置路径%
+return
+
+打开使用文档:
+    if FileExist(软件配置路径 "\ICO\常用路径写法说明.txt")
+        run,%软件配置路径%\ICO\常用路径写法说明.txt
     Else
         run,%软件配置路径%
 return

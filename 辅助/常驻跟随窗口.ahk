@@ -66,6 +66,10 @@ if (参数1="-常驻窗口跟随"){
         IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
         自定义常用路径:=ReplaceVars(自定义常用路径2)
 
+        IniRead, 替换双斜杠单反斜杠双引号, %软件安装路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
+        if (替换双斜杠单反斜杠双引号="" || 替换双斜杠单反斜杠双引号="ERROR")
+            替换双斜杠单反斜杠双引号:="关闭"
+
         IniRead, DO的收藏夹, %软件安装路径%\个人配置.ini,基础配置,DO的收藏夹
 
         IniRead, 跳转方式, %软件安装路径%\个人配置.ini,基础配置,跳转方式
@@ -309,23 +313,23 @@ Return
 Return
 
 添加到常用:
-    IniRead, 自定义常用路径, %软件安装路径%\个人配置.ini,常用路径
+    IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
     Gui searchbox: Submit, NoHide
 
     文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
 
-    自定义常用路径:=Trim(RemoveDuplicateLines(自定义常用路径 "`n" 文本框选择值1),"`n") ;移除重复内容
+    自定义常用路径:=Trim(RemoveDuplicateLines(自定义常用路径2 "`n" 文本框选择值1),"`n") ;移除重复内容
     IniDelete, %软件安装路径%\个人配置.ini,常用路径
     IniWrite, %自定义常用路径%, %软件安装路径%\个人配置.ini,常用路径
     所有路径合集.Insert(文本框选择值1)
 Return
 
 从常用中移除:
-    IniRead, 自定义常用路径, %软件安装路径%\个人配置.ini,常用路径
+    IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
     Gui searchbox: Submit, NoHide
     文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
 
-    自定义常用路径 := Trim(RemoveDuplicateLines(DeleteMatchingLines(自定义常用路径, 文本框选择值1)),"`n")
+    自定义常用路径 := Trim(RemoveDuplicateLines(DeleteMatchingLines(自定义常用路径2, 文本框选择值1)),"`n")
     IniDelete, %软件安装路径%\个人配置.ini,常用路径
     IniWrite, %自定义常用路径%, %软件安装路径%\个人配置.ini,常用路径
 Return
@@ -686,9 +690,12 @@ return
     自定义常用路径:=ReplaceVars(自定义常用路径2)
     if (失效路径显示设置 ="关闭")
         自定义常用路径:= FilterExistingPaths(自定义常用路径)
- 
-    常用所有路径:= 自定义常用路径
+    if (替换双斜杠单反斜杠双引号="开启"){
+        自定义常用路径:=RegExReplace(StrReplace(自定义常用路径, """", ""), "\\\\|/", "\")
+    }
+    自定义常用路径:=程序专属路径筛选(自定义常用路径)
 
+    常用所有路径:= 自定义常用路径
 
     if (文件夹名显示在前="开启"){
         资管所有路径 := 给行首加文件名(资管所有路径)
@@ -706,9 +713,9 @@ return
     global 获取到的do收藏夹路径:=""
     if (DO的收藏夹="开启"){
         获取到的do收藏夹路径:=DirectoryOpusgetfa()
-    if (失效路径显示设置 ="关闭")
-        获取到的do收藏夹路径:= FilterExistingPaths(获取到的do收藏夹路径)
-}
+        if (失效路径显示设置 ="关闭")
+            获取到的do收藏夹路径:= FilterExistingPaths(获取到的do收藏夹路径)
+    }
     if (文件夹名显示在前="开启"){
         获取到的do收藏夹路径 := 给行首加文件名(获取到的do收藏夹路径)
     }

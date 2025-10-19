@@ -1871,3 +1871,22 @@ FilterExistingPaths(paths) {
     }
     return Trim(existingPaths, "`n")  ; 移除末尾多余的换行符
 }
+
+程序专属路径筛选(str){
+    str2:=""
+    Loop, Parse, str, `n, `r
+    {
+        if not (RegExMatch(A_LoopField, "^\s*$")){  ; 跳过空行
+            if RegExMatch(A_LoopField, "=") {   ; 包含等号的行
+                StringSplit, parts, A_LoopField, =
+                if WinActive(parts1){
+                    str2 .= parts2 . "`n"
+                }
+                continue
+            }
+
+            str2 .= A_LoopField . "`n"
+        }
+    }
+    Return Trim(str2, "`n")
+}

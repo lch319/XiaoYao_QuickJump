@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.4.7.1"
+软件版本号:="4.4.8"
 
 ;清除辅助脚本进程
 FileRead,后台隐藏运行脚本记录,%A_Temp%\后台隐藏运行脚本记录.txt
@@ -53,7 +53,16 @@ IniRead, 菜单背景颜色, %A_ScriptDir%\个人配置.ini,基础配置,菜单�
 IniRead, 延迟自动弹出时间, %A_ScriptDir%\个人配置.ini,基础配置,延迟自动弹出时间
 
 IniRead, 自定义常用路径2, %A_ScriptDir%\个人配置.ini,常用路径
-自定义常用路径:=ReplaceVars(自定义常用路径2)
+自定义常用路径2:=ReplaceVars(自定义常用路径2)
+
+
+IniRead, 替换双斜杠单反斜杠双引号, %A_ScriptDir%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
+if (替换双斜杠单反斜杠双引号="" || 替换双斜杠单反斜杠双引号="ERROR")
+    替换双斜杠单反斜杠双引号:="关闭"
+if (替换双斜杠单反斜杠双引号="开启"){
+    自定义常用路径2:=RegExReplace(StrReplace(自定义常用路径2, """", ""), "\\\\|/", "\")
+}
+
 
 IniRead, DirectoryOpus全标签路径, %A_ScriptDir%\个人配置.ini,基础配置,DirectoryOpus全标签路径
 
@@ -357,6 +366,8 @@ ShowMenu:
         }
     }
     ; ------------------ 常用路径 ------------------
+    自定义常用路径:=程序专属路径筛选(自定义常用路径2)
+    
     Menu ContextMenu, Add
     Menu ContextMenu, Add, < 常用路径 >, Choice
     Menu ContextMenu, Disable, < 常用路径 >
@@ -613,7 +624,7 @@ Return
 关于:
     ;Gui,guanyu:+AlwaysOnTop
     Gui,guanyu:font, s10
-    Gui,guanyu:Add, Edit,r9 w300,作者:逍遥`nhttps://github.com/lch319/XiaoYao_QuickJump`n`nQQ群：`n246308937(RunAny快速启动一劳永逸)`n736344313(Directory Opus 2000人群)`n`n在打开或保存对话框中，快速定位到当前打开的文件夹路径。`n目前支持 资管/TC/DO/XY/Q-Dir
+    Gui,guanyu:Add, Edit,r9 w380,作者:逍遥`nhttps://github.com/lch319/XiaoYao_QuickJump`n`nQQ群：`n246308937(RunAny快速启动一劳永逸)`n736344313(Directory Opus 2000人群)`n`n在打开或保存对话框中，快速定位到当前打开的文件夹路径。`n目前支持 资管/TC/DO/XY/Q-Dir
     Gui,guanyu:Show,,快速跳转_v%软件版本号%
 Return
 Menu_Reload:
