@@ -390,19 +390,31 @@ DirectoryOpusgetinfo(){
     do所以标签路径:=""
     DetectHiddenWindows, on
     if WinExist("ahk_exe dopus.exe"){
+        FileDelete, %A_Temp%\pathlist.txt
         WinGet, dopath, ProcessPath,ahk_exe dopus.exe
         SplitPath, dopath,,dir
-        RunWait,"%dir%\dopusrt.exe" /info %A_Temp%\pathlist.txt`,paths
-        FileRead, doinfo信息列表, %A_Temp%\pathlist.txt
-        正则:=">([^<]+)<\/path>"
-        Loop, parse, doinfo信息列表 , `n
-        {
-            if (RegExMatch(A_LoopField, 正则, do标签路径)){
-                if not FileExist(do标签路径1)
-                    do标签路径1:=StrReplace(do标签路径1, "`&amp`;", "`&")
-                do标签路径1:=RTrim(do标签路径1,"\")
-                do所以标签路径 .= do标签路径1 "`n"
+
+        if (A_IsAdmin){
+
+            RunWaitWithTimeout("""" dir "\dopusrt.exe"" /info " A_Temp "\pathlist.txt`,paths","100")
+            ;MsgBox, 1
+        }Else
+            RunWait,"%dir%\dopusrt.exe" /info %A_Temp%\pathlist.txt`,paths
+
+        if FileExist(A_Temp "\pathlist.txt"){   ;如果生成了文件
+            FileRead, doinfo信息列表, %A_Temp%\pathlist.txt
+            正则:=">([^<]+)<\/path>"
+            Loop, parse, doinfo信息列表 , `n
+            {
+                if (RegExMatch(A_LoopField, 正则, do标签路径)){
+                    if not FileExist(do标签路径1)
+                        do标签路径1:=StrReplace(do标签路径1, "`&amp`;", "`&")
+                    do标签路径1:=RTrim(do标签路径1,"\")
+                    do所以标签路径 .= do标签路径1 "`n"
+                }
             }
+        }Else{
+            do所以标签路径:= DirectoryOpus_控件()
         }
         do所以标签路径:= Trim(do所以标签路径,"`n")
     }
@@ -481,7 +493,7 @@ DirectoryOpusget3(command){
         WinGet, dopath, ProcessPath,ahk_exe dopus.exe
         SplitPath, dopath,,dir
         RunWait,"%dir%\dopusrt.exe" /acmd %command%
-        ClipWait, 1
+        ;ClipWait, 0.1
         do路径:= Clipboard
         Clipboard := ClipSaved
         ClipSaved := ""
@@ -495,6 +507,25 @@ DirectoryOpus_path2(command){
     if FileExist(do路径2)
         do路径:= do路径2
     Return do路径
+}
+
+;用控件获取do路径---------------------------------------
+DirectoryOpus_控件(){
+    allpath:=""
+    DetectHiddenWindows, on
+    if WinExist("ahk_exe dopus.exe"){
+
+        ; 获取当前活动窗口的控件列表
+        WinGet, ControlList, ControlList, ahk_class dopus.lister
+        ;MsgBox % ControlList
+        Loop, Parse, ControlList, `n
+        {
+            ControlGetText, ControlText, %A_LoopField%, ahk_class dopus.lister
+            if FileExist(ControlText)
+                allpath.= Rtrim(ControlText,"\") "`n"
+        }
+    }
+    Return RemoveDuplicateLines(移除空白行(Trim(allpath,"`n")))
 }
 
 ;------------------ 获取File Explorer路径 ------------------
@@ -1889,4 +1920,21 @@ FilterExistingPaths(paths) {
         }
     }
     Return Trim(str2, "`n")
+}
+
+; 定义带超时的 RunWait 函数
+RunWaitWithTimeout(Command, TimeoutMs := 30000)
+{
+    Run, %Command%
+
+    MaxWaitTime := 200
+    StartTime := A_TickCount
+    Loop
+    {
+        if FileExist(A_Temp "\pathlist.txt")    ;如果生成了文件
+            Break
+        if (A_TickCount - StartTime > MaxWaitTime)  ; 检查是否超时
+            Break
+        
+    }
 }

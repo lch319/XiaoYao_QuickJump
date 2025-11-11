@@ -11,7 +11,10 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.4.8"
+软件版本号:="4.4.9"
+
+;判断是否管理员启动
+Gosub, Label_AdminLaunch
 
 ;清除辅助脚本进程
 FileRead,后台隐藏运行脚本记录,%A_Temp%\后台隐藏运行脚本记录.txt
@@ -55,14 +58,12 @@ IniRead, 延迟自动弹出时间, %A_ScriptDir%\个人配置.ini,基础配置,�
 IniRead, 自定义常用路径2, %A_ScriptDir%\个人配置.ini,常用路径
 自定义常用路径2:=ReplaceVars(自定义常用路径2)
 
-
 IniRead, 替换双斜杠单反斜杠双引号, %A_ScriptDir%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
 if (替换双斜杠单反斜杠双引号="" || 替换双斜杠单反斜杠双引号="ERROR")
     替换双斜杠单反斜杠双引号:="关闭"
 if (替换双斜杠单反斜杠双引号="开启"){
     自定义常用路径2:=RegExReplace(StrReplace(自定义常用路径2, """", ""), "\\\\|/", "\")
 }
-
 
 IniRead, DirectoryOpus全标签路径, %A_ScriptDir%\个人配置.ini,基础配置,DirectoryOpus全标签路径
 
@@ -174,7 +175,10 @@ Label_AutoRun(开机自启)
 ;------------------ 托盘右键菜单设置 ----------------
 Menu,Tray,NoStandard
 Menu,Tray,Icon ,ICO/程序图标.ico
-Menu,Tray,Tip,XiaoYao_快速跳转`n版本：v%软件版本号%`n作者：逍遥
+
+GuiTitleContent := A_IsAdmin=1?"（管理员）":""
+Menu,Tray,Tip,XiaoYao_快速跳转%GuiTitleContent%`n版本：v%软件版本号%`n作者：逍遥
+
 Menu,Tray,add,设置(&D),打开设置
 Menu,Tray,add,关于(&G),关于
 Menu,Tray,add,目录(&F),打开软件安装目录
@@ -194,7 +198,7 @@ Hotkey, If
 
 Hotkey, If,WinActiveList2(屏蔽xiaoyao程序列表)
 if not (热键="" || 热键="ERROR")
-    Hotkey, %热键%, ShowMenu
+    Hotkey, %热键%, ShowMenu1
 if not (一键跳转热键="" || 一键跳转热键="ERROR")
     Hotkey, %一键跳转热键%, 一键跳转路径
 if not (常驻搜索窗口呼出热键="" || 常驻搜索窗口呼出热键="ERROR")
@@ -269,7 +273,6 @@ return
 
 ;------------------ 生成菜单 ------------------
 ShowMenu:
-    手动弹出计数++
     ExplorerPath:=""
     DirectoryOpuspath:=""
     TotalCommanderpath:=""
@@ -367,7 +370,7 @@ ShowMenu:
     }
     ; ------------------ 常用路径 ------------------
     自定义常用路径:=程序专属路径筛选(自定义常用路径2)
-    
+
     Menu ContextMenu, Add
     Menu ContextMenu, Add, < 常用路径 >, Choice
     Menu ContextMenu, Disable, < 常用路径 >
@@ -537,6 +540,10 @@ ShowMenu2:
     Gosub, ShowMenu
 Return
 
+ShowMenu1:
+    手动弹出计数++
+    Gosub, ShowMenu
+Return
 ; -------------------------------------------------------------------
 Choice:
     ;$FolderPath := A_ThisMenuItem
@@ -931,4 +938,31 @@ WinActiveList2(窗口列表1111){
     IniWrite, %NewList2%, %A_ScriptDir%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
     run,"%A_ScriptDir%\XiaoYao_快速跳转.exe" "%A_ScriptDir%\主程序.ahk"
 ;MsgBox, %NewList2%
+return
+
+Label_AdminLaunch: ; 管理员启动
+    IniRead, 管理员启动, %A_ScriptDir%\个人配置.ini,基础配置,管理员启动
+    if !(管理员启动="关闭")
+        管理员启动:="开启"
+
+    if (!A_IsAdmin && 管理员启动="开启")
+    {
+        try
+        {
+            if A_IsCompiled
+                Run *RunAs "%A_ScriptFullPath%" /restart
+            else
+                Run *RunAs "%A_AhkPath%" /restart "%A_ScriptFullPath%"
+        }catch{
+            MsgBox, 1,, 以【管理员权限】启动失败！将以普通权限启动，管理员应用窗口将失效！
+            IfMsgBox OK
+            {
+                if A_IsCompiled
+                    Run "%A_ScriptFullPath%" /restart
+                else
+                    Run "%A_AhkPath%" /restart "%A_ScriptFullPath%"
+            }
+        }
+        ExitApp
+    }
 return

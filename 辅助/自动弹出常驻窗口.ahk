@@ -1,6 +1,8 @@
 ﻿#SingleInstance,Force ;~运行替换旧实例
 #NoTrayIcon ;~不显示托盘图标
 #Persistent ;;~让脚本持久运行
+
+FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 SetWinDelay, -1 ;设置在每次执行窗口命令,使用 -1 表示无延时
 SetBatchLines, -1   ;让操作以最快速度进行.
 

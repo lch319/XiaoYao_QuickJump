@@ -678,7 +678,7 @@ return
         资管所有路径:=Explorer_Path() "`n" Explorer_Path全部()
 
     if WinExist("ahk_exe dopus.exe")
-        do所有路径:=RTrim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" DirectoryOpusgetinfo()
+        do所有路径:=RTrim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" RTrim(DirectoryOpus_path("Clipboard SET {destpath}"),"\") "`n" DirectoryOpusgetinfo()
 
     if WinExist("ahk_class TTOTAL_CMD")
         tc所有路径:= TotalCommander_path("1") "`n" TotalCommander_path("2")
@@ -688,12 +688,14 @@ return
 
     IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
     自定义常用路径:=ReplaceVars(自定义常用路径2)
-    if (失效路径显示设置 ="关闭")
-        自定义常用路径:= FilterExistingPaths(自定义常用路径)
-    if (替换双斜杠单反斜杠双引号="开启"){
+    自定义常用路径:=程序专属路径筛选(自定义常用路径)
+        if (替换双斜杠单反斜杠双引号="开启"){
         自定义常用路径:=RegExReplace(StrReplace(自定义常用路径, """", ""), "\\\\|/", "\")
     }
-    自定义常用路径:=程序专属路径筛选(自定义常用路径)
+    
+    if (失效路径显示设置 ="关闭")
+        自定义常用路径:= FilterExistingPaths(自定义常用路径)
+
 
     常用所有路径:= 自定义常用路径
 

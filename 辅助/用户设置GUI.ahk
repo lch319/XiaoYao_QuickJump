@@ -4,14 +4,17 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.4.8"
+窗口标题名:="XiaoYao_快速跳转v4.4.9"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
 ;避免重复打开
 if (Single("456")) {  ;独一无二的字符串用于识别脚本,或者称为指纹?
     WinActivate, %窗口标题名% ahk_class AutoHotkeyGUI
-    ExitApp
+    if not WinExist(窗口标题名 " ahk_class AutoHotkeyGUI")
+        WinKill, %窗口标题名% ahk_class AutoHotkeyGUI
+    Else
+        ExitApp
 }
 Single("456")
 
@@ -129,6 +132,10 @@ ahk_exe IDMan.exe
         IniRead, 默认路径, %软件配置路径%\个人配置.ini,基础配置,默认路径
         if (默认路径="ERROR")
             默认路径:= ""
+
+        IniRead, 管理员启动,%软件配置路径%\个人配置.ini,基础配置,管理员启动
+        if !(管理员启动="关闭")
+            管理员启动:="开启"
     }
 Return
 
@@ -157,6 +164,8 @@ Return
     失效路径显示设置:= 失效路径显示设置="关闭"?0:1
 
     替换双斜杠单反斜杠双引号:= 替换双斜杠单反斜杠双引号="关闭"?0:1
+
+    管理员启动:= 管理员启动="关闭"?0:1
 
     DO全标签:=DirectoryOpus全标签路径
     DO全标签:= DO全标签="关闭"?0:1
@@ -202,9 +211,9 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% vAuto_Launch, %OnOffState%
     GuiControl, Choose, Auto_Launch,% Auto_Launch+1
 
-    Gui, 55:Add, Text, x+61 yp+2 cred, 跳转方式:
-    Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v跳转方式1, 1|2|3|4|5
-    GuiControl, Choose, 跳转方式1, % 跳转方式1+1
+    Gui, 55:Add, Text, x+57 yp+2 cred, 管理员启动:
+    Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v管理员启动, %OnOffState%
+    GuiControl, Choose, 管理员启动, % 管理员启动+1
 
     Gui, 55:Add, GroupBox, xm y+10 w%group_width_55% h93, 菜单 热键配置【仅对话框生效】
     Gui, 55:Add, Text, xm+%left_margin% yp+25, 呼出菜单
@@ -235,15 +244,11 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v自动弹出, %OnOffState%
     GuiControl, Choose, 自动弹出, % 自动弹出+1
 
-    Gui, 55:Add, Text, xm+%left_margin% yp+40, 全局菜单功能
-    Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v全局性菜单项功能, %OnOffState2%
-    GuiControl, Choose, 全局性菜单项功能,% 全局性菜单项功能+1
-
     Gui, 55:Add, Text, xm+%left_margin% yp+40, 是否加载图标
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v是否加载图标, %OnOffState%
     GuiControl, Choose, 是否加载图标,% 是否加载图标+1
 
-    Gui, 55:Add, GroupBox, xm y+10 w%group_width_55% h190, 常用路径设置【支持ahk内置变量 写法：`%A_Desktop`%】
+    Gui, 55:Add, GroupBox, xm y+50 w%group_width_55% h190, 常用路径设置【支持ahk内置变量 写法：`%A_Desktop`%】
     Gui, 55:Add, Text,Cblue x375 yp w70 g打开使用文档, 更多写法:
 
     Gui, 55:Add, Edit, xm+%left_margin% yp+20 w400 r9 v常用路径1, %常用路径1%
@@ -373,9 +378,17 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v失效路径显示设置, %OnOffState%
     GuiControl, Choose, 失效路径显示设置, % 失效路径显示设置+1
 
-    Gui, 55:Add, Text, xm+%left_margin% yp+35 , 常用路径填写：替换\\和/为\ 并删除双引号
+    Gui, 55:Add, Text, xm+%left_margin% yp+35 , 常用路径：替换\\和/为\并删除双引号
     Gui, 55:Add, DropDownList, x+5 yp-4 w%text_width% v替换双斜杠单反斜杠双引号, %OnOffState%
     GuiControl, Choose, 替换双斜杠单反斜杠双引号, % 替换双斜杠单反斜杠双引号+1
+
+    Gui, 55:Add, Text, xm+%left_margin% yp+35, 全局点击功能:
+    Gui, 55:Add, DropDownList, x+5 yp-4 w%text_width% v全局性菜单项功能, %OnOffState2%
+    GuiControl, Choose, 全局性菜单项功能,% 全局性菜单项功能+1
+
+    Gui, 55:Add, Text, x+48 yp+2, 跳转方式:
+    Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v跳转方式1, 1|2|3|4|5
+    GuiControl, Choose, 跳转方式1, % 跳转方式1+1
 
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
@@ -400,7 +413,8 @@ Return
     总次数:=自动弹出常驻窗口次数+自动弹出菜单计数+手动弹出计数
     Gui, 55:Add, Text, xm+20 yp+20, 总次数：%总次数%
 
-    Gui,55: Show,w%Gui_width_55%,%窗口标题名%
+    GuiTitleContent := A_IsAdmin=1?"（管理员）":"（非管理员）"
+    Gui,55: Show,w%Gui_width_55%,%窗口标题名%%GuiTitleContent%
 
 Return
 
@@ -460,6 +474,7 @@ Return
     IniWrite, %历史路径设为默认路径%, %软件配置路径%\个人配置.ini,基础配置,历史路径设为默认路径
     IniWrite, %默认路径%, %软件配置路径%\个人配置.ini,基础配置,默认路径
     IniWrite, %替换双斜杠单反斜杠双引号%, %软件配置路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
+    IniWrite, %管理员启动%, %软件配置路径%\个人配置.ini,基础配置,管理员启动
 
     gosub, Menu_Reload
 Return
