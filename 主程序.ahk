@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.4.9"
+软件版本号:="4.4.9.1"
 
 ;判断是否管理员启动
 Gosub, Label_AdminLaunch

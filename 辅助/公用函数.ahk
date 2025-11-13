@@ -395,13 +395,13 @@ DirectoryOpusgetinfo(){
         SplitPath, dopath,,dir
 
         if (A_IsAdmin){
-
             RunWaitWithTimeout("""" dir "\dopusrt.exe"" /info " A_Temp "\pathlist.txt`,paths","100")
             ;MsgBox, 1
         }Else
             RunWait,"%dir%\dopusrt.exe" /info %A_Temp%\pathlist.txt`,paths
 
         if FileExist(A_Temp "\pathlist.txt"){   ;如果生成了文件
+            ;MsgBox, 1
             FileRead, doinfo信息列表, %A_Temp%\pathlist.txt
             正则:=">([^<]+)<\/path>"
             Loop, parse, doinfo信息列表 , `n
@@ -426,9 +426,10 @@ DirectoryOpusgetfa(){
     do所有路径:=""
     do收藏夹路径1:=""
     收藏夹文件 := A_AppData "\GPSoftware\Directory Opus\ConfigFiles\favorites.ofv"
-    if WinExist("ahk_exe dopus.exe")
-        收藏夹文件 := DirectoryOpus_path2("Clipboard COPYNAMES FILE """"/dopusdata""""") "\ConfigFiles\favorites.ofv"
-    ;MsgBox, %收藏夹文件%
+    if not FileExist(收藏夹文件){
+        if WinExist("ahk_exe dopus.exe")
+            收藏夹文件 := DirectoryOpus_path2("Clipboard COPYNAMES FILE """"/dopusdata""""") "\ConfigFiles\favorites.ofv"
+    }
     if not FileExist(收藏夹文件)
         return ""
 
@@ -493,7 +494,7 @@ DirectoryOpusget3(command){
         WinGet, dopath, ProcessPath,ahk_exe dopus.exe
         SplitPath, dopath,,dir
         RunWait,"%dir%\dopusrt.exe" /acmd %command%
-        ;ClipWait, 0.1
+        ClipWait, 1
         do路径:= Clipboard
         Clipboard := ClipSaved
         ClipSaved := ""
@@ -1935,6 +1936,6 @@ RunWaitWithTimeout(Command, TimeoutMs := 30000)
             Break
         if (A_TickCount - StartTime > MaxWaitTime)  ; 检查是否超时
             Break
-        
+
     }
 }
