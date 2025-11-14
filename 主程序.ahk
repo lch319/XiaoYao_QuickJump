@@ -312,7 +312,9 @@ ShowMenu:
         $Exp := ""
     }
     ; ------------------ Total Commander ------------------
-    if WinExist("ahk_class TTOTAL_CMD"){
+    ; if·‌WinExist("ahk_class·‌TTOTAL_CMD"){
+    ; DoubleCommander ClassName 和 TotalCommander ClassName 重复了，都是 TTOTAL_CMD,因此改用 ahk_exe TOTALCMD64.EXE 判断
+    if WinExist("ahk_exe TOTALCMD64.EXE"){
         TotalCommanderpath:=TotalCommander_path()
         cm_CopySrcPathToClip := 2029
         cm_CopyTrgPathToClip := 2030
@@ -333,6 +335,24 @@ ShowMenu:
         Clipboard := ClipSaved
         ClipSaved := ""
     }
+
+    
+    ; ------------------ Double Commander------------------
+    if WinExist("ahk_exe doublecmd.exe") {
+        ; DoubleCmd 没有 cm_CopySrcPathToClip cm_CopyTrgPathToClip
+        ; 只好通过标题名称获取打开的路径
+        ; 需要在 DoubleCmd 中配置 杂项-在主窗口标题栏中显示当前目录
+        DetectHiddenWindows, On
+        WinGetTitle, title, ahk_class TTOTAL_CMD
+        if RegExMatch(title, "\(([A-Z]:\\.*?)[\\]?\)", match)
+        {
+            dc路径 := match1
+            Menu ContextMenu, Add, %dc路径%, Choice
+            if (是否加载图标 != "关闭")
+                Menu ContextMenu, Icon, %dc路径%, ICO/doublecmd.ico
+        }
+    }
+
 
     ; ------------------ XYplorer ------------------
     Loop, parse, xy所有路径, `n, `r
