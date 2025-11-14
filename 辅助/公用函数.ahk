@@ -594,6 +594,21 @@ TotalCommander_path(指定栏:="1"){
     Return tc路径
 }
 
+;--------获取Double Commander路径---------------------------------------
+DoubleCommander_path() {
+    ; DoubleCmd 没有 cm_CopySrcPathToClip cm_CopyTrgPathToClip
+    ; 只好通过标题名称获取打开的路径
+    ; 需要在 DoubleCmd 中配置 杂项-在主窗口标题栏中显示当前目录
+    dc路径 := ""
+    DetectHiddenWindows, On
+    WinGetTitle, title, ahk_class TTOTAL_CMD
+    if RegExMatch(title, "\(([A-Z]:\\.*?)[\\]?\)", match)
+    {
+        dc路径 := match1
+    }
+    Return dc路径
+}
+
 ;-----------历史打开路径------------------------------------------------
 HistoryOpenPath(软件安装路径2:=""){
     folder汇总:=""
