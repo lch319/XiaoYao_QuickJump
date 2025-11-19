@@ -596,17 +596,45 @@ TotalCommander_path(指定栏:="1"){
 
 ;--------获取Double Commander路径---------------------------------------
 DoubleCommander_path() {
-    ; DoubleCmd 没有 cm_CopySrcPathToClip cm_CopyTrgPathToClip
-    ; 只好通过标题名称获取打开的路径
-    ; 需要在 DoubleCmd 中配置 杂项-在主窗口标题栏中显示当前目录
-    dc路径 := ""
-    DetectHiddenWindows, On
-    WinGetTitle, title, ahk_class TTOTAL_CMD
-    if RegExMatch(title, "\(([A-Z]:\\.*?)[\\]?\)", match)
-    {
-        dc路径 := match1
+    if WinExist("ahk_exe doublecmd.exe") {
+        ; 保存当前活动窗口
+        WinGet, prevActiveWindow, ID, A
+        
+        ; 激活 DC 窗口
+        WinActivate, ahk_exe doublecmd.exe
+        WinWaitActive, ahk_exe doublecmd.exe, , 2
+        
+        ; 发送 Ctrl+Shift+F12 快捷键
+        Send, ^+{F12}
+        
+        ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
+        Sleep, 500
+        
+        ; 切换回之前焦点窗口
+        if (prevActiveWindow && WinExist("ahk_id " prevActiveWindow)) {
+            WinActivate, ahk_id %prevActiveWindow%
+        }
+        
+        ; 假设 Ctrl+Shift+F12 会生成包含路径的文件，读取该文件
+        ; 您需要根据实际的 Lua 脚本输出文件路径来修改这里
+        EnvGet, tempPath, TEMP
+        tempFile := tempPath . "\dc_tabs_output.txt"
+        
+        if FileExist(tempFile) {
+            FileRead, dcTabPaths, %tempFile%
+            FileDelete, %tempFile%  ; 清理临时文件
+            ; MsgBox, %dcTabPaths%
+            return dcTabPaths
+        } else {
+            ; MsgBox, "tempFile 不存在"
+            ; 如果文件方法失败，回退到窗口标题方法
+            WinGetTitle, dcTitle, ahk_exe doublecmd.exe
+            if RegExMatch(dcTitle, "\(([A-Z]:\\.*?)[\\]?\)", match) {
+                dcPath := match1
+                return dcPath
+            }
+        }
     }
-    Return dc路径
 }
 
 ;-----------历史打开路径------------------------------------------------

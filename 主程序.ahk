@@ -339,17 +339,67 @@ ShowMenu:
     
     ; ------------------ Double Commander------------------
     if WinExist("ahk_exe doublecmd.exe") {
-        ; DoubleCmd 没有 cm_CopySrcPathToClip cm_CopyTrgPathToClip
-        ; 只好通过标题名称获取打开的路径
-        ; 需要在 DoubleCmd 中配置 杂项-在主窗口标题栏中显示当前目录
-        DetectHiddenWindows, On
-        WinGetTitle, title, ahk_class TTOTAL_CMD
-        if RegExMatch(title, "\(([A-Z]:\\.*?)[\\]?\)", match)
-        {
-            dc路径 := match1
-            Menu ContextMenu, Add, %dc路径%, Choice
-            if (是否加载图标 != "关闭")
-                Menu ContextMenu, Icon, %dc路径%, ICO/doublecmd.ico
+        ; 保存当前活动窗口
+        WinGet, prevActiveWindow, ID, A
+        
+        ; 激活 DC 窗口
+        WinActivate, ahk_exe doublecmd.exe
+        WinWaitActive, ahk_exe doublecmd.exe, , 2
+        
+        ; 发送 Ctrl+Shift+F12 快捷键
+        Send, ^+{F12}
+        
+        ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
+        Sleep, 500
+        
+        ; 切换回之前焦点窗口
+        if (prevActiveWindow && WinExist("ahk_id " prevActiveWindow)) {
+            WinActivate, ahk_id %prevActiveWindow%
+        }
+        
+        ; 假设 Ctrl+Shift+F12 会生成包含路径的文件，读取该文件
+        ; 您需要根据实际的 Lua 脚本输出文件路径来修改这里
+        EnvGet, tempPath, TEMP
+        tempFile := tempPath . "\dc_tabs_output.txt"
+        
+        if FileExist(tempFile) {
+            FileRead, dcTabPaths, %tempFile%
+            FileDelete, %tempFile%  ; 清理临时文件
+            ; MsgBox, %dcTabPaths%
+            ; 将路径添加到菜单
+            Loop, Parse, dcTabPaths, `n, `r
+            {
+                path := Trim(A_LoopField)
+                if (path != "") {
+                    Menu, ContextMenu, Add, %path%, Choice
+                    if (是否加载图标 != "关闭")
+                        Menu, ContextMenu, Icon, %path%, ICO/doublecmd.ico
+                    
+                    ; 存储完整路径供后续使用
+                    DC_Paths[path] := path
+                }
+            }
+            
+            ; 添加分隔线（如果有路径被添加）
+            if (dcTabPaths != "")
+                Menu, ContextMenu, Add
+        } else {
+            ; MsgBox, "tempFile 不存在"
+            ; 如果文件方法失败，回退到窗口标题方法
+            WinGetTitle, dcTitle, ahk_exe doublecmd.exe
+            if RegExMatch(dcTitle, "\(([A-Z]:\\.*?)[\\]?\)", match) {
+                dcPath := match1
+                if (dcPath != "" && FileExist(dcPath)) {
+                    SplitPath, dcPath, , , , nameNoExt
+                    displayName := nameNoExt ? nameNoExt : dcPath
+                    
+                    Menu, ContextMenu, Add, %displayName%, Choice
+                    if (是否加载图标 != "关闭")
+                        Menu, ContextMenu, Icon, %displayName%, ICO/doublecmd.ico
+                    
+                    Menu, ContextMenu, Add
+                }
+            }
         }
     }
 
