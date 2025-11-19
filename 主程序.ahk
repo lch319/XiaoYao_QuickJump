@@ -370,6 +370,7 @@ ShowMenu:
             Loop, Parse, dcTabPaths, `n, `r
             {
                 path := Trim(A_LoopField)
+                path := RegExReplace(path, "\\+$", "")
                 if (path != "") {
                     Menu, ContextMenu, Add, %path%, Choice
                     if (是否加载图标 != "关闭")
