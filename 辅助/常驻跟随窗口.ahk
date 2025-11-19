@@ -121,7 +121,7 @@ ahk_exe IDMan.exe
     }Else if (初始文本框内容="do收藏夹"){
         global 文本框内容写入:= 换行符转换为竖杠(移除空白行(获取到的do收藏夹路径))
     }Else{
-        global 文本框内容写入:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
+        global 文本框内容写入:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" dc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
         if (文本框内容写入="")
             global 文本框内容写入:= 换行符转换为竖杠(移除空白行(自定义常用路径))
     }
@@ -252,7 +252,7 @@ Return
 ;[窗口各个按钮功能直达]-------------------------------------
 当前打开:
     gosub,将所有内容路径加入到数组
-    实时Text:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
+    实时Text:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" dc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
     GuiControl, , % 文本框ID, % "|" 实时Text
     GuiControl, Choose, % 文本框ID, 1
 Return
@@ -666,6 +666,7 @@ return
     资管所有路径:=""
     do所有路径:=""
     tc所有路径:=""
+    dc所有路径:=""
     xy所有路径:=""
     qdir所有路径:=""
 
@@ -680,8 +681,11 @@ return
     if WinExist("ahk_exe dopus.exe")
         do所有路径:=RTrim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" RTrim(DirectoryOpus_path("Clipboard SET {destpath}"),"\") "`n" DirectoryOpusgetinfo()
 
-    if WinExist("ahk_class TTOTAL_CMD")
+    if WinExist("ahk_exe TOTALCMD64.EXE")
         tc所有路径:= TotalCommander_path("1") "`n" TotalCommander_path("2")
+
+    if WinExist("ahk_exe doublecmd.exe")
+        dc所有路径:= DoubleCommander_path()
 
     xy所有路径:=XYplorer_Path()
     qdir所有路径:=Q_Dir_Path()
@@ -703,6 +707,7 @@ return
         资管所有路径 := 给行首加文件名(资管所有路径)
         do所有路径 := 给行首加文件名(do所有路径)
         tc所有路径 := 给行首加文件名(tc所有路径)
+        dc所有路径 := 给行首加文件名(dc所有路径)
         自定义常用路径 := 给行首加文件名(自定义常用路径)
         xy所有路径 := 给行首加文件名(xy所有路径)
         qdir所有路径 := 给行首加文件名(qdir所有路径)
@@ -722,7 +727,7 @@ return
         获取到的do收藏夹路径 := 给行首加文件名(获取到的do收藏夹路径)
     }
 
-    合并所有路径:= Trim(资管所有路径, "`n") "`n" Trim(do所有路径, "`n") "`n" Trim(tc所有路径, "`n") "`n" Trim(获取到的do收藏夹路径, "`n") "`n" Trim(常用所有路径, "`n") "`n" Trim(历史所有路径, "`n") "`n" Trim(xy所有路径, "`n") "`n" Trim(qdir所有路径, "`n")
+    合并所有路径:= Trim(资管所有路径, "`n") "`n" Trim(do所有路径, "`n") "`n" Trim(tc所有路径, "`n") "`n" Trim(dc所有路径, "`n") "`n" Trim(获取到的do收藏夹路径, "`n") "`n" Trim(常用所有路径, "`n") "`n" Trim(历史所有路径, "`n") "`n" Trim(xy所有路径, "`n") "`n" Trim(qdir所有路径, "`n")
     合并所有路径:=RemoveDuplicateLines(合并所有路径)    ;移除重复内容
 
     global 所有路径合集:= []

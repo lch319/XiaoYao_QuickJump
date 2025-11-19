@@ -312,7 +312,9 @@ ShowMenu:
         $Exp := ""
     }
     ; ------------------ Total Commander ------------------
-    if WinExist("ahk_class TTOTAL_CMD"){
+    ; if·‌WinExist("ahk_class·‌TTOTAL_CMD"){
+    ; DoubleCommander ClassName 和 TotalCommander ClassName 重复了，都是 TTOTAL_CMD,因此改用 ahk_exe TOTALCMD64.EXE 判断
+    if WinExist("ahk_exe TOTALCMD64.EXE"){
         TotalCommanderpath:=TotalCommander_path()
         cm_CopySrcPathToClip := 2029
         cm_CopyTrgPathToClip := 2030
@@ -333,6 +335,63 @@ ShowMenu:
         Clipboard := ClipSaved
         ClipSaved := ""
     }
+
+    
+    ; ------------------ Double Commander------------------
+    if WinExist("ahk_exe doublecmd.exe") {
+        ; 向后台 Double Commander 窗口发送 Ctrl+Shift+F12 快捷键
+        ControlSend, , ^+{F12}, ahk_exe doublecmd.exe
+        ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
+        Sleep, 500
+        
+        ; 假设 Ctrl+Shift+F12 会生成包含路径的文件，读取该文件
+        ; 您需要根据实际的 Lua 脚本输出文件路径来修改这里
+        EnvGet, tempPath, TEMP
+        tempFile := tempPath . "\dc_tabs_output.txt"
+        
+        if FileExist(tempFile) {
+            FileEncoding, UTF-8
+            FileRead, dcTabPaths, %tempFile%
+            FileDelete, %tempFile%  ; 清理临时文件
+            ; MsgBox, %dcTabPaths%
+            ; 将路径添加到菜单
+            Loop, Parse, dcTabPaths, `n, `r
+            {
+                path := Trim(A_LoopField)
+                path := RegExReplace(path, "\\+$", "")
+                if (path != "") {
+                    Menu, ContextMenu, Add, %path%, Choice
+                    if (是否加载图标 != "关闭")
+                        Menu, ContextMenu, Icon, %path%, ICO/doublecmd.ico
+                    
+                    ; 存储完整路径供后续使用
+                    DC_Paths[path] := path
+                }
+            }
+            
+            ; 添加分隔线（如果有路径被添加）
+            if (dcTabPaths != "")
+                Menu, ContextMenu, Add
+        } else {
+            ; MsgBox, "tempFile 不存在"
+            ; 如果文件方法失败，回退到窗口标题方法
+            WinGetTitle, dcTitle, ahk_exe doublecmd.exe
+            if RegExMatch(dcTitle, "\(([A-Z]:\\.*?)[\\]?\)", match) {
+                dcPath := match1
+                if (dcPath != "" && FileExist(dcPath)) {
+                    SplitPath, dcPath, , , , nameNoExt
+                    displayName := nameNoExt ? nameNoExt : dcPath
+                    
+                    Menu, ContextMenu, Add, %displayName%, Choice
+                    if (是否加载图标 != "关闭")
+                        Menu, ContextMenu, Icon, %displayName%, ICO/doublecmd.ico
+                    
+                    Menu, ContextMenu, Add
+                }
+            }
+        }
+    }
+
 
     ; ------------------ XYplorer ------------------
     Loop, parse, xy所有路径, `n, `r
