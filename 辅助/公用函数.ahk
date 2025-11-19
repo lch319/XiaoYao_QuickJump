@@ -609,6 +609,7 @@ DoubleCommander_path() {
         tempFile := tempPath . "\dc_tabs_output.txt"
         
         if FileExist(tempFile) {
+            FileEncoding, UTF-8
             FileRead, dcTabPaths, %tempFile%
             FileDelete, %tempFile%  ; 清理临时文件
             ; MsgBox, %dcTabPaths%
