@@ -339,23 +339,10 @@ ShowMenu:
     
     ; ------------------ Double Commander------------------
     if WinExist("ahk_exe doublecmd.exe") {
-        ; 保存当前活动窗口
-        WinGet, prevActiveWindow, ID, A
-        
-        ; 激活 DC 窗口
-        WinActivate, ahk_exe doublecmd.exe
-        WinWaitActive, ahk_exe doublecmd.exe, , 2
-        
-        ; 发送 Ctrl+Shift+F12 快捷键
-        Send, ^+{F12}
-        
+        ; 向后台 Double Commander 窗口发送 Ctrl+Shift+F12 快捷键
+        ControlSend, , ^+{F12}, ahk_exe doublecmd.exe
         ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
         Sleep, 500
-        
-        ; 切换回之前焦点窗口
-        if (prevActiveWindow && WinExist("ahk_id " prevActiveWindow)) {
-            WinActivate, ahk_id %prevActiveWindow%
-        }
         
         ; 假设 Ctrl+Shift+F12 会生成包含路径的文件，读取该文件
         ; 您需要根据实际的 Lua 脚本输出文件路径来修改这里
