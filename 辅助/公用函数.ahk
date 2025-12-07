@@ -2,27 +2,46 @@
 ;MsgBox, % Calculate("3+4*5-6/2")  ; 输出 20
 ;MsgBox, % Calculate("10/2 + 3*4")  ; 输出 17
 ;MsgBox, % Calculate("7-2*3")       ; 输出 1
+;═════════════════════════════════计算数学表达式═════════════════════════════════════════════════
 Calculate(expression) {
     ; 1. 去除所有空格
     expression := StrReplace(expression, " ", "")
 
+    ; 如果表达式为空，返回0
+    if (expression = "") {
+        return 0
+    }
+
     ; 2. 解析表达式为 tokens（数字和运算符）
     tokens := []
     i := 1
-    while (i <= StrLen(expression)) {
+    len := StrLen(expression)
+
+    while (i <= len) {
         char := SubStr(expression, i, 1)
-        if (char >= "0" && char <= "9") {  ; 数字
+
+        ; 处理数字（包括负数）
+        if (char >= "0" && char <= "9") || (char = "-" && (i = 1 || IsOperator(SubStr(expression, i-1, 1)))) {
             j := i
-            while (j <= StrLen(expression) && (SubStr(expression, j, 1) >= "0" && SubStr(expression, j, 1) <= "9")) {
+            ; 如果是负号，先跳过
+            if (char = "-") {
                 j++
             }
+
+            ; 读取数字部分
+            while (j <= len && (SubStr(expression, j, 1) >= "0" && SubStr(expression, j, 1) <= "9")) {
+                j++
+            }
+
             num_str := SubStr(expression, i, j - i)
             tokens.Push(num_str + 0)  ; 转换为数值
             i := j
-        } else if (char == "+" || char == "-" || char == "*" || char == "/") {  ; 运算符
+        }
+        else if (char == "+" || char == "-" || char == "*" || char == "/") {  ; 运算符
             tokens.Push(char)
             i++
-        } else {  ; 非法字符
+        }
+        else {  ; 非法字符
             MsgBox, 非法字符: %char%
             return ""
         }
@@ -71,6 +90,11 @@ Calculate(expression) {
 
     ; 5. 返回最终结果
     return tokens[1]
+}
+
+; 辅助函数：判断字符是否为运算符
+IsOperator(char) {
+    return char == "+" || char == "-" || char == "*" || char == "/"
 }
 ;================当前鼠标所指的窗口 =====================
 MouseIsOver(WinTitle) {
@@ -384,7 +408,49 @@ Send_XYPlorer_Message(xyHwnd, message){
     result := DllCall("User32.dll\SendMessageW", "Ptr", xyHwnd, "UInt", 74, "Ptr", 0, "Ptr", &COPYDATA, "Ptr")
     Return
 }
+;---------获取DC当前标签页的路径-----------------
+DoubleCommander_path(指定热键:="^+{F12}"){
+    dc路径:=""
+    DetectHiddenWindows, off
+    if WinExist("ahk_exe doublecmd.exe"){
+        EnvGet, tempPath, TEMP
+        tempFile := tempPath . "\dc_tabs_output.txt"
+        FileDelete, %tempFile%
+        ;MsgBox, 指定热键
+        ; 向后台 Double Commander 窗口发送 指定热键
+        ControlSend, , %指定热键%, ahk_exe doublecmd.exe
+        
+        Loop
+        {
+            Sleep, 10
+            If fileExist(tempFile){
+                FileEncoding, UTF-8
+                FileRead, dc路径, %tempFile%
+                ; 移除行末反斜杠（包括可能存在的空格）
+                dc路径 := RegExReplace(dc路径, "\\\R", "`r`n")
 
+                Return Trim(dc路径,"`n")
+            }
+            If (A_Index > 50)  ; 超过500毫秒还没生成文件就退出
+                Break
+        }
+
+        ;通过标题名称获取打开的路径
+        ; 需要在 DoubleCmd 中配置 杂项-在主窗口标题栏中显示当前目录
+        WinGet, windowList, List, ahk_exe doublecmd.exe
+        Loop, %windowList%
+        {
+            windowID := windowList%A_Index%
+            WinGetTitle, this_title, ahk_id %windowID%
+            ;更换正则，当文件夹名称里带括号时也能获取路径
+            if RegExMatch(this_title, "i)\(([A-Z]:\\.*)", match){   ;先匹配开头是(盘符路径
+                处理标题:=RegExReplace(match1,"\)[^)]*$","")  ;再去掉结尾的)及其后面部分
+                dc路径 .= RTrim(处理标题,"\") "`n"
+            }
+        }
+        Return Trim(dc路径,"`n")
+    }
+}
 ;--------获取所有do窗口标签页的路径---------------------------------------
 DirectoryOpusgetinfo(){
     do所以标签路径:=""
@@ -418,6 +484,7 @@ DirectoryOpusgetinfo(){
         }
         do所以标签路径:= Trim(do所以标签路径,"`n")
     }
+    DetectHiddenWindows, off
     Return do所以标签路径
 }
 ;--------获取do收藏夹的的所有路径---------------------------------------
@@ -474,6 +541,7 @@ DirectoryOpusget2(command){
         Clipboard := ClipSaved
         ClipSaved := ""
     }
+    DetectHiddenWindows, off
     Return do路径
 }
 DirectoryOpus_path(command){
@@ -499,6 +567,7 @@ DirectoryOpusget3(command){
         Clipboard := ClipSaved
         ClipSaved := ""
     }
+    DetectHiddenWindows, off
     Return do路径
 }
 DirectoryOpus_path2(command){
@@ -526,6 +595,7 @@ DirectoryOpus_控件(){
                 allpath.= Rtrim(ControlText,"\") "`n"
         }
     }
+    DetectHiddenWindows, off
     Return RemoveDuplicateLines(移除空白行(Trim(allpath,"`n")))
 }
 
@@ -572,26 +642,32 @@ Explorer_Path全部(){
 ;--------获取Total Commander路径---------------------------------------
 ;指定栏: 填1是获取来源栏,填2是目标栏
 TotalCommander_path(指定栏:="1"){
+    SetTitleMatchMode RegEx
     tc路径:=""
     DetectHiddenWindows,On
-    cm_CopySrcPathToClip := 2029
-    cm_CopyTrgPathToClip := 2030
-    ClipSaved := ClipboardAll
-    Clipboard := ""
-
-    SendMessage 1075, %cm_CopySrcPathToClip%, 0, , ahk_class TTOTAL_CMD
-    folder:=RegExReplace(clipboard,"S)^\\\\(?!file)")
-    If (ErrorLevel = 0 && folder && (指定栏="1" or 指定栏="0"))
-        tc路径:= folder
-
-    SendMessage 1075, %cm_CopyTrgPathToClip%, 0, , ahk_class TTOTAL_CMD
-    folder:=RegExReplace(clipboard,"S)^\\\\(?!file)")
-    If (ErrorLevel = 0 && folder && (指定栏="2" or 指定栏="0"))
-        tc路径:= folder
-
-    Clipboard := ClipSaved
-    ClipSaved := ""
-    Return tc路径
+    if WinExist("ahk_exe i)totalcmd.*\.exe"){
+        cm_CopySrcPathToClip := 2029
+        cm_CopyTrgPathToClip := 2030
+        ClipSaved := ClipboardAll
+        Clipboard := ""
+        if (指定栏="1" or 指定栏="0"){
+            SendMessage 1075, %cm_CopySrcPathToClip%, 0, , ahk_class TTOTAL_CMD ahk_exe i)totalcmd.*\.exe
+            folder:=Rtrim(RegExReplace(clipboard,"S)^\\\\(?!file)"),"\")
+            If (ErrorLevel = 0 && folder)
+                tc路径.= folder "`n"
+        }
+        if (指定栏="2" or 指定栏="0"){
+            SendMessage 1075, %cm_CopyTrgPathToClip%, 0, , ahk_class TTOTAL_CMD ahk_exe i)totalcmd.*\.exe
+            folder:=Rtrim(RegExReplace(clipboard,"S)^\\\\(?!file)"),"\")
+            If (ErrorLevel = 0 && folder)
+                tc路径.= folder
+        }
+        Clipboard := ClipSaved
+        ClipSaved := ""
+    }
+    SetTitleMatchMode 1
+    DetectHiddenWindows, off
+    Return trim(tc路径, "`n")
 }
 
 ;-----------历史打开路径------------------------------------------------

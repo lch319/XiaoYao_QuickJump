@@ -91,6 +91,10 @@ if (参数1="-常驻窗口跟随"){
         IniRead, 初始文本框内容, %软件安装路径%\个人配置.ini,基础配置,初始文本框内容
         IniRead, 失效路径显示设置, %软件安装路径%\个人配置.ini,基础配置,失效路径显示设置
 
+        IniRead, 给dc发送热键, %软件安装路径%\个人配置.ini,基础配置,给dc发送热键
+        if (给dc发送热键="" || 给dc发送热键="ERROR")
+            给dc发送热键:= "^+{F12}"
+
         IniRead, 窗口文本行距, %软件安装路径%\个人配置.ini,基础配置,窗口文本行距
         if (窗口文本行距="" || 窗口文本行距="ERROR")
             窗口文本行距:= "20"
@@ -121,7 +125,7 @@ ahk_exe IDMan.exe
     }Else if (初始文本框内容="do收藏夹"){
         global 文本框内容写入:= 换行符转换为竖杠(移除空白行(获取到的do收藏夹路径))
     }Else{
-        global 文本框内容写入:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
+        global 文本框内容写入:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径 "`n" dc所有路径,"`n"))))
         if (文本框内容写入="")
             global 文本框内容写入:= 换行符转换为竖杠(移除空白行(自定义常用路径))
     }
@@ -148,12 +152,12 @@ ExitApp
 Return
 ;[显示窗口]-------------------------------------
 显示常驻搜索窗口:
-
     if WinExist(窗口标题名称 " ahk_class AutoHotkeyGUI"){
         ;MsgBox, 已存在常驻搜索窗口,请先关闭后再打开
         ExitApp
         Return
     }
+
     Gui,searchbox:Destroy
     global Gui_winID
     ;Gui,searchbox: +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
@@ -169,7 +173,7 @@ Return
     Gui,searchbox: Add, Button,x+0 y0 g历史打开,历史
     Gui,searchbox: Add, Button,x+0 y0 g全部目录路径,全部
 
-    if (DO的收藏夹="开启")
+    if (DO的收藏夹="开启") and (获取到的do收藏夹路径 !="")
         Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹,dopus
 
     Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴,粘贴
@@ -189,6 +193,7 @@ Return
     GuiControl, , % 文本框ID, % "|" 文本框内容写入
     GuiControl, Choose, % 文本框ID, 1
 
+    ;MsgBox,% 字符坐标替换(窗口初始坐标x)
     窗口初始坐标x:= Calculate(字符坐标替换(窗口初始坐标x))
     窗口初始坐标y:= Calculate(字符坐标替换(窗口初始坐标y))
     窗口初始宽度:= Calculate(字符坐标替换(窗口初始宽度))
@@ -202,11 +207,13 @@ Return
         窗口初始坐标y:=鼠标位置Y
     }
 
+    SysGet, VirtualWidth, 78
+    SysGet, VirtualHeight, 79
     ;坐标保护防止显示在屏幕外面
-    if  (A_ScreenWidth < (窗口初始坐标x + 窗口初始宽度))
-        窗口初始坐标x:= A_ScreenWidth - 窗口初始宽度
-    if  (A_ScreenHeight < (窗口初始坐标y + 窗口初始高度))
-        窗口初始坐标y:= A_ScreenHeight - 窗口初始高度
+    if  (VirtualWidth < (窗口初始坐标x + 窗口初始宽度))
+        窗口初始坐标x:= VirtualWidth - 窗口初始宽度 - 5
+    if  (VirtualHeight < (窗口初始坐标y + 窗口初始高度))
+        窗口初始坐标y:= VirtualHeight - 窗口初始高度
 
     Gui,searchbox: Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
     SetTimer, ExitScript, Off   ;关闭5秒后的退出操作
@@ -252,7 +259,7 @@ Return
 ;[窗口各个按钮功能直达]-------------------------------------
 当前打开:
     gosub,将所有内容路径加入到数组
-    实时Text:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
+    实时Text:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径 "`n" dc所有路径,"`n"))))
     GuiControl, , % 文本框ID, % "|" 实时Text
     GuiControl, Choose, % 文本框ID, 1
 Return
@@ -392,6 +399,7 @@ Return
     Menu, searchbox, Add, 在该程序中禁用xiaoyao, 在该程序中禁用xiaoyao
 
     Menu, searchbox, Add
+    Menu, searchbox, Add, 导出日志, 导出日志
     Menu, searchbox, Add, 设置(&D), 设置可视化
     Menu, searchbox, Add, 重启(&R), Menu_Reload
     Menu, searchbox, Add, 退出(&E), Menu_Exit
@@ -668,6 +676,7 @@ return
     tc所有路径:=""
     xy所有路径:=""
     qdir所有路径:=""
+    dc所有路径:=""
 
     global 历史所有路径:= HistoryOpenPath(软件安装路径)
     if (失效路径显示设置 ="关闭")
@@ -681,21 +690,21 @@ return
         do所有路径:=RTrim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" RTrim(DirectoryOpus_path("Clipboard SET {destpath}"),"\") "`n" DirectoryOpusgetinfo()
 
     if WinExist("ahk_class TTOTAL_CMD")
-        tc所有路径:= TotalCommander_path("1") "`n" TotalCommander_path("2")
+        tc所有路径:= TotalCommander_path("0")
 
     xy所有路径:=XYplorer_Path()
     qdir所有路径:=Q_Dir_Path()
+    dc所有路径:=DoubleCommander_path(给dc发送热键)
 
     IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
     自定义常用路径:=ReplaceVars(自定义常用路径2)
     自定义常用路径:=程序专属路径筛选(自定义常用路径)
-        if (替换双斜杠单反斜杠双引号="开启"){
+    if (替换双斜杠单反斜杠双引号="开启"){
         自定义常用路径:=RegExReplace(StrReplace(自定义常用路径, """", ""), "\\\\|/", "\")
     }
-    
+
     if (失效路径显示设置 ="关闭")
         自定义常用路径:= FilterExistingPaths(自定义常用路径)
-
 
     常用所有路径:= 自定义常用路径
 
@@ -706,6 +715,7 @@ return
         自定义常用路径 := 给行首加文件名(自定义常用路径)
         xy所有路径 := 给行首加文件名(xy所有路径)
         qdir所有路径 := 给行首加文件名(qdir所有路径)
+        dc所有路径 := 给行首加文件名(dc所有路径)
         历史所有路径 := 给行首加文件名(历史所有路径)
     }
 return
@@ -722,7 +732,7 @@ return
         获取到的do收藏夹路径 := 给行首加文件名(获取到的do收藏夹路径)
     }
 
-    合并所有路径:= Trim(资管所有路径, "`n") "`n" Trim(do所有路径, "`n") "`n" Trim(tc所有路径, "`n") "`n" Trim(获取到的do收藏夹路径, "`n") "`n" Trim(常用所有路径, "`n") "`n" Trim(历史所有路径, "`n") "`n" Trim(xy所有路径, "`n") "`n" Trim(qdir所有路径, "`n")
+    合并所有路径:= Trim(资管所有路径, "`n") "`n" Trim(do所有路径, "`n") "`n" Trim(tc所有路径, "`n") "`n" Trim(获取到的do收藏夹路径, "`n") "`n" Trim(常用所有路径, "`n") "`n" Trim(历史所有路径, "`n") "`n" Trim(xy所有路径, "`n") "`n" Trim(qdir所有路径, "`n") "`n" Trim(dc所有路径, "`n")
     合并所有路径:=RemoveDuplicateLines(合并所有路径)    ;移除重复内容
 
     global 所有路径合集:= []
@@ -887,3 +897,50 @@ return
     run,"%软件安装路径%\XiaoYao_快速跳转.exe" "%软件安装路径%\主程序.ahk"
 ;MsgBox, %NewList2%
 return
+
+导出日志:
+    IniRead, 未转化之前的坐标x, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标x
+    IniRead, 未转化之前的坐标y, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标y
+    IniRead, 窗口初始宽度, %软件安装路径%\个人配置.ini,基础配置,窗口初始宽度
+    IniRead, 窗口初始高度, %软件安装路径%\个人配置.ini,基础配置,窗口初始高度
+
+    转化之后的坐标x:= Calculate(字符坐标替换(未转化之前的坐标x))
+    转化之后的坐标y:= Calculate(字符坐标替换(未转化之前的坐标y))
+
+    SysGet, VirtualWidth, 78
+    SysGet, VirtualHeight, 79
+    ;坐标保护防止显示在屏幕外面
+    转化之后的坐标x2:= 转化之后的坐标x
+    转化之后的坐标y2:= 转化之后的坐标y
+    if  (VirtualWidth < (转化之后的坐标x + 窗口初始宽度))
+        转化之后的坐标x2:= VirtualWidth - 窗口初始宽度
+    if  (VirtualHeight < (转化之后的坐标y + 窗口初始高度))
+        转化之后的坐标y2:= VirtualHeight - 窗口初始高度
+
+    常驻窗口的相关坐标信息:="未转化之前的坐标x：" 未转化之前的坐标x "`n未转化之前的坐标y：" 未转化之前的坐标y "`n转化之后的坐标x：" 转化之后的坐标x "`n转化之后的坐标y：" 转化之后的坐标y "`n屏幕保护后的坐标x2：" 转化之后的坐标x2 "`n屏幕保护后的坐标y2：" 转化之后的坐标y2
+
+    SysGet, MonitorCount, MonitorCount
+    SysGet, MonitorPrimary, MonitorPrimary
+    ;MsgBox, 显示器的数量‌:`t%MonitorCount%`n主显示器:`t%MonitorPrimary%
+    显示屏信息:=""
+    Loop, %MonitorCount%
+    {
+        SysGet, MonitorName, MonitorName, %A_Index%
+        SysGet, Monitor, Monitor, %A_Index%
+        SysGet, MonitorWorkArea, MonitorWorkArea, %A_Index%
+        显示屏信息 .="显示屏:`t#" A_Index "`n名称:`t" MonitorName "`n左边:`t" MonitorLeft " (" MonitorWorkAreaLeft " work)`n上边:`t" MonitorTop " (" MonitorWorkAreaTop " work)`n右边:`t" MonitorRight " (" MonitorWorkAreaRight " work)`n下边:`t" MonitorBottom " (" MonitorWorkAreaBottom " work)`n"
+        ;MsgBox, 显示屏:`t#%A_Index%`n名称:`t%MonitorName%`n左边:`t%MonitorLeft% (%MonitorWorkAreaLeft% work)`n上边:`t%MonitorTop% (%MonitorWorkAreaTop% work)`n右边:`t%MonitorRight% (%MonitorWorkAreaRight% work)`n下边:`t%MonitorBottom% (%MonitorWorkAreaBottom% work)
+    }
+
+    显示器的信息:= "显示器数量: " MonitorCount "`n主显示器: " MonitorPrimary "`n`n显示屏信息:`n" 显示屏信息
+
+    WinGetPos, 活动窗口X, 活动窗口Y, 活动窗口W, 活动窗口H, ahk_id %唯一性%
+    WinGetPos, 常驻窗口X2, 常驻窗口Y2, 常驻窗口W2, 常驻窗口H2, %窗口标题名称%
+
+    父窗口的信息:= "活动窗口：X: " 活动窗口X "  Y: " 活动窗口Y "  W: " 活动窗口W "  H: " 活动窗口H
+    常驻窗口的信息:= "常驻窗口：X2: " 常驻窗口X2 "  Y2: " 常驻窗口Y2 "  W2: " 常驻窗口W2 "  H2: " 常驻窗口H2
+
+    ;MsgBox, % 常驻窗口的相关坐标信息 "`n`n" 父窗口的信息 "`n" 常驻窗口的信息 "`n`n" 显示器的信息
+    ttip("已导出日志到软件安装路径下",3000)
+    FileAppend,% "窗口边界信息：" VirtualWidth " " VirtualHeight "`n`n" 常驻窗口的相关坐标信息 "`n`n" 父窗口的信息 "`n" 常驻窗口的信息 "`n`n" 显示器的信息,%软件安装路径%\导出日志%A_Now%.txt
+Return

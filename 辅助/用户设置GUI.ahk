@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.4.9.1"
+窗口标题名:="XiaoYao_快速跳转v4.5.0"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -77,6 +77,10 @@ Return
         IniRead, 全局性菜单项功能, %软件配置路径%\个人配置.ini,基础配置,全局性菜单项功能
         IniRead, 初始文本框内容, %软件配置路径%\个人配置.ini,基础配置,初始文本框内容
         IniRead, 是否加载图标, %软件配置路径%\个人配置.ini,基础配置,是否加载图标
+
+        IniRead, 给dc发送热键, %软件配置路径%\个人配置.ini,基础配置,给dc发送热键
+        if (给dc发送热键="" || 给dc发送热键="ERROR")
+            给dc发送热键:= "^+{F12}"
 
         IniRead, 常用路径最多显示数量, %软件配置路径%\个人配置.ini,基础配置,常用路径最多显示数量
         if (常用路径最多显示数量="" || 常用路径最多显示数量="ERROR")
@@ -367,6 +371,9 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% vDO收藏夹1, %OnOffState%
     GuiControl, Choose, DO收藏夹1, % DO收藏夹1+1
 
+    Gui, 55:Add, Text, xm+%left_margin% yp+35 , 给doublecmd发送指定按键获取路径：
+    Gui, 55:Add, Edit, x+5 yp-2 w%text_width% v给dc发送热键, %给dc发送热键%
+
     Gui, 55:Add, Text, xm+%left_margin% yp+35 , 历史打开数量:(最近跳转路径的个数上限)
     Gui, 55:Add, Edit, x+5 yp-2 w50 h25 v历史打开数量, %历史打开数量%
 
@@ -475,6 +482,7 @@ Return
     IniWrite, %默认路径%, %软件配置路径%\个人配置.ini,基础配置,默认路径
     IniWrite, %替换双斜杠单反斜杠双引号%, %软件配置路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
     IniWrite, %管理员启动%, %软件配置路径%\个人配置.ini,基础配置,管理员启动
+    IniWrite, %给dc发送热键%, %软件配置路径%\个人配置.ini,基础配置,给dc发送热键
 
     gosub, Menu_Reload
 Return

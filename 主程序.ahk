@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.4.9.1"
+软件版本号:="4.5.0"
 
 ;判断是否管理员启动
 Gosub, Label_AdminLaunch
@@ -162,6 +162,11 @@ if (手动弹出计数="" || 手动弹出计数="ERROR")
 IniRead, 自动弹出菜单计数, %A_ScriptDir%\个人配置.ini,基础配置,自动弹出菜单计数
 if (自动弹出菜单计数="" || 自动弹出菜单计数="ERROR")
     自动弹出菜单计数:= "0"
+
+IniRead, 给dc发送热键, %A_ScriptDir%\个人配置.ini,基础配置,给dc发送热键
+if (给dc发送热键="" || 给dc发送热键="ERROR")
+    给dc发送热键:= "^+{F12}"
+
 OnExit, 退出时运行
 
 ;------------------ 读取配置终止线 ----------------
@@ -278,6 +283,7 @@ ShowMenu:
     TotalCommanderpath:=""
     xy所有路径:=XYplorer_Path()
     qdir所有路径:=Q_Dir_Path()
+    dc所有路径:=DoubleCommander_path(给dc发送热键)
 
     开头内容:="按shift复制 ctrl打开"
 
@@ -312,28 +318,22 @@ ShowMenu:
         $Exp := ""
     }
     ; ------------------ Total Commander ------------------
-    if WinExist("ahk_class TTOTAL_CMD"){
-        TotalCommanderpath:=TotalCommander_path()
-        cm_CopySrcPathToClip := 2029
-        cm_CopyTrgPathToClip := 2030
-        ClipSaved := ClipboardAll
-        Clipboard := ""
-        SendMessage 1075, %cm_CopySrcPathToClip%, 0, , ahk_class TTOTAL_CMD
-        If (ErrorLevel = 0) {
-            Menu ContextMenu, Add, %clipboard%, Choice
+    SetTitleMatchMode RegEx
+    if WinExist("ahk_exe i)totalcmd.*\.exe"){
+        TotalCommanderpath:=TotalCommander_path("1")
+        If (TotalCommanderpath != "") {
+            Menu ContextMenu, Add, %TotalCommanderpath%, Choice
             if (是否加载图标 !="关闭")
-                Menu ContextMenu, Icon, %clipboard%, ICO/Totalcmd.ico
+                Menu ContextMenu, Icon, %TotalCommanderpath%, ICO/Totalcmd.ico
         }
-        SendMessage 1075, %cm_CopyTrgPathToClip%, 0, , ahk_class TTOTAL_CMD
-        If (ErrorLevel = 0) {
-            Menu ContextMenu, Add, %clipboard%, Choice
+        TotalCommanderpath2:=TotalCommander_path("2")
+        If (TotalCommanderpath2 != "") {
+            Menu ContextMenu, Add, %TotalCommanderpath2%, Choice
             if (是否加载图标 !="关闭")
-                Menu ContextMenu, Icon, %clipboard%, ICO/Totalcmd.ico
-        }
-        Clipboard := ClipSaved
-        ClipSaved := ""
+                Menu ContextMenu, Icon, %TotalCommanderpath2%, ICO/Totalcmd.ico
+        }        
     }
-
+    SetTitleMatchMode 1
     ; ------------------ XYplorer ------------------
     Loop, parse, xy所有路径, `n, `r
     {
@@ -348,6 +348,14 @@ ShowMenu:
         Menu ContextMenu, Add, %A_LoopField%, Choice
         if (是否加载图标 !="关闭")
             Menu ContextMenu, Icon, %A_LoopField%, ICO/Q-Dir.ico
+    }
+
+    ; ------------------ DoubleCommander ------------------
+    Loop, parse, dc所有路径, `n, `r
+    {
+        Menu ContextMenu, Add, %A_LoopField%, Choice
+        if (是否加载图标 !="关闭")
+            Menu ContextMenu, Icon, %A_LoopField%, ICO/DoubleCommander.ico
     }
 
     ; ------------------ Directory Opus ------------------
@@ -428,7 +436,7 @@ ShowMenu:
         }
     }
     ; ------------------ do收藏夹 ------------------
-    if (DO的收藏夹="开启"){
+    if (DO的收藏夹="开启") and (do收藏夹所有路径 !=""){
 
         Menu, do收藏夹, Add,部分收藏夹需先运行do, Choice
         Menu, do收藏夹, Disable,部分收藏夹需先运行do
@@ -594,7 +602,7 @@ return
     手动弹出计数++
     $WinID := WinExist("A")
     ;MsgBox,1
-    Firstpath:=Trim(Explorer_Path() "`n" DirectoryOpus_path("Clipboard SET {sourcepath}") "`n" TotalCommander_path() "`n" XYplorer_Path("1"),"`n")
+    Firstpath:=Trim(Explorer_Path() "`n" DirectoryOpus_path("Clipboard SET {sourcepath}") "`n" TotalCommander_path() "`n" XYplorer_Path("1") "`n" DoubleCommander_path(给dc发送热键),"`n")
     ;expath:=Explorer_Path()
     ;dopath:=Trim(DirectoryOpus_path("Clipboard SET {sourcepath}"))
     ;tcpath:=TotalCommander_path()
