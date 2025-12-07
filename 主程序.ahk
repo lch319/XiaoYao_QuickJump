@@ -339,8 +339,21 @@ ShowMenu:
     
     ; ------------------ Double Commander------------------
     if WinExist("ahk_exe doublecmd.exe") {
-        ; 向后台 Double Commander 窗口发送 Ctrl+Shift+F12 快捷键
-        ControlSend, , ^+{F12}, ahk_exe doublecmd.exe
+        ; 获取所有 doublecmd.exe 窗口
+        WinGet, dcWindows, List, ahk_exe doublecmd.exe
+        
+        Loop, %dcWindows% {
+            winId := dcWindows%A_Index%
+            WinGetClass, winClass, ahk_id %winId%
+            WinGetTitle, winTitle, ahk_id %winId%
+            if (winClass = "TTOTAL_CMD" && InStr(winTitle, "Double Commander")) {
+                ; 找到主窗口，保存其ID
+                dcMainWinId := winId
+                break
+            }
+        }
+        ; 向后台 Double Commander 主窗口发送 Ctrl+Shift+F12 快捷键
+        ControlSend, , ^+{F12}, ahk_id %dcMainWinId%
         ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
         Sleep, 500
         
