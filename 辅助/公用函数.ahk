@@ -416,10 +416,15 @@ DoubleCommander_path(指定热键:="^+{F12}"){
         EnvGet, tempPath, TEMP
         tempFile := tempPath . "\dc_tabs_output.txt"
         FileDelete, %tempFile%
-        ;MsgBox, 指定热键
-        ; 向后台 Double Commander 窗口发送 指定热键
-        ControlSend, , %指定热键%, ahk_exe doublecmd.exe
+        ;MsgBox, %指定热键%
         
+        ; 向后台 Double Commander 窗口发送 指定热键
+        
+        if WinActive("ahk_class TTOTAL_CMD ahk_exe doublecmd.exe")
+            Send, %指定热键%
+        Else
+            ControlSend, , %指定热键%, ahk_class TTOTAL_CMD ahk_exe doublecmd.exe
+
         Loop
         {
             Sleep, 10
