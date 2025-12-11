@@ -3,6 +3,36 @@
 #NoTrayIcon ;~不显示托盘图标
 #Persistent ;;~让脚本持久运行
 #Include %A_ScriptDir%\公用函数.ahk
+       
+; 暗黑模式相关函数
+Menu_Dark(d) { ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
+  static uxtheme := DllCall("GetModuleHandle", "str", "uxtheme", "ptr")
+  static SetPreferredAppMode := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 135, "ptr")
+  static FlushMenuThemes := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 136, "ptr")
+
+  DllCall(SetPreferredAppMode, "int", d) ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
+  DllCall(FlushMenuThemes)
+}
+
+; 读取系统深色模式状态
+IsDarkMode() {
+    ; 注册表路径和值名称
+    static RegPath := "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+    static ValueName := "AppsUseLightTheme"
+    
+    ; 读取注册表值
+    RegRead, AppsUseLightTheme, %RegPath%, %ValueName%
+    
+    ; AppsUseLightTheme = 0 表示深色模式，1 表示浅色模式
+    return (AppsUseLightTheme = 0)
+}
+
+; 根据系统主题自动设置模式
+global 系统深色模式状态 := IsDarkMode()
+if (系统深色模式状态)
+    Menu_Dark(2) ; 启用暗黑模式
+else
+    Menu_Dark(3) ; 启用浅色模式
 
 SetWinDelay, -1 ;设置在每次执行窗口命令,使用 -1 表示无延时
 SetBatchLines, -1   ;让操作以最快速度进行.
@@ -165,27 +195,75 @@ Return
     ;Clipboard:= Gui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
+    ; 根据系统主题动态设置窗口背景和字体颜色
+    if (窗口背景颜色="") {
+        if (系统深色模式状态)
+            窗口背景颜色 := "0x202020" ; 深色背景
+        else
+            窗口背景颜色 := "0xF0F0F0" ; 浅色背景
+    }
+    if (窗口字体颜色="") {
+        if (系统深色模式状态)
+            窗口字体颜色 := "0xE0E0E0" ; 浅色字体
+        else
+            窗口字体颜色 := "0x202020" ; 深色字体
+    }
+    
     Gui,searchbox: Color,%窗口背景颜色%,%窗口背景颜色%
     Gui,searchbox: Font,c%窗口字体颜色%,%窗口字体名称%
 
-    Gui,searchbox: Add, Button,x-2 y0 g当前打开,当前
-    Gui,searchbox: Add, Button,x+0 y0 g常用路径,常用
-    Gui,searchbox: Add, Button,x+0 y0 g历史打开,历史
-    Gui,searchbox: Add, Button,x+0 y0 g全部目录路径,全部
+    ; 添加按钮并根据系统主题设置样式
+    Gui,searchbox: Add, Button,x-2 y0 g当前打开 HwndBtn1,当前
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn1, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g常用路径 HwndBtn2,常用
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn2, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g历史打开 HwndBtn3,历史
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn3, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g全部目录路径 HwndBtn4,全部
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn4, "str", "DarkMode_Explorer", "ptr", 0)
 
-    if (DO的收藏夹="开启") and (获取到的do收藏夹路径 !="")
-        Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹,dopus
+    if (DO的收藏夹="开启") and (获取到的do收藏夹路径 !="") {
+        Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹 HwndBtn5,dopus
+        if (系统深色模式状态)
+            DllCall("uxtheme\SetWindowTheme", "ptr", Btn5, "str", "DarkMode_Explorer", "ptr", 0)
+    }
 
-    Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴,粘贴
-    Gui,searchbox: Add, Button,x+0 y0 g更多功能设置,更多
+    Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴 HwndBtn6,粘贴
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn6, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g更多功能设置 HwndBtn7,更多
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn7, "str", "DarkMode_Explorer", "ptr", 0)
 
     Gui,searchbox: Font,s%窗口字体大小%
     Gui,searchbox: Add, Edit, w200 x-2 y24 Hwnd搜索框ID v搜索框输入值, % ""
+    ; 根据系统主题设置编辑框主题
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", 搜索框ID, "str", "DarkMode_Explorer", "ptr", 0)
     EM_SETCUEBANNER(搜索框ID, "输入框")
 
     Gui,searchbox: Add, ListBox, w200 x-2 y+6 Hwnd文本框ID g文本框选择后执行的操作 v文本框选择值1, % ""
+    ; 根据系统主题设置列表框主题
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", 文本框ID, "str", "DarkMode_Explorer", "ptr", 0)
     ; 设置行高为  像素
     SendMessage, 0x01A0, 0, 窗口文本行距, , ahk_id %文本框ID%  ; LB_SETITEMHEIGHT
+
+    ; 根据系统主题设置标题栏颜色（适用于Windows 10+）
+    if (A_OSVersion >= "10.0.17763" && SubStr(A_OSVersion, 1, 3) = "10.") {
+        attr := A_OSVersion >= "10.0.18985" ? 20 : 19
+        ; 根据系统深色模式状态设置标题栏颜色
+        darkTitlebar := 系统深色模式状态 ? 1 : 0
+        DllCall("dwmapi\DwmSetWindowAttribute", "ptr", Gui_winID, "int", attr, "int*", darkTitlebar, "int", 4)
+    }
 
     Gui searchbox:+LastFound ; 让 GUI 窗口成为上次找到的窗口以用于下一行的命令.
 
