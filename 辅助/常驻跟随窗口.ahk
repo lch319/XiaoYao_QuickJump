@@ -752,6 +752,7 @@ return
     资管所有路径:=""
     do所有路径:=""
     tc所有路径:=""
+    dc所有路径:=""
     xy所有路径:=""
     qdir所有路径:=""
     dc所有路径:=""
@@ -769,6 +770,9 @@ return
 
     if WinExist("ahk_class TTOTAL_CMD")
         tc所有路径:= TotalCommander_path("0")
+
+    if WinExist("ahk_exe doublecmd.exe")
+        dc所有路径:= DoubleCommander_path()
 
     xy所有路径:=XYplorer_Path()
     qdir所有路径:=Q_Dir_Path()
@@ -790,6 +794,7 @@ return
         资管所有路径 := 给行首加文件名(资管所有路径)
         do所有路径 := 给行首加文件名(do所有路径)
         tc所有路径 := 给行首加文件名(tc所有路径)
+        dc所有路径 := 给行首加文件名(dc所有路径)
         自定义常用路径 := 给行首加文件名(自定义常用路径)
         xy所有路径 := 给行首加文件名(xy所有路径)
         qdir所有路径 := 给行首加文件名(qdir所有路径)

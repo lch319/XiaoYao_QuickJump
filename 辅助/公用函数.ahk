@@ -675,6 +675,51 @@ TotalCommander_path(指定栏:="1"){
     Return trim(tc路径, "`n")
 }
 
+;--------获取Double Commander路径---------------------------------------
+DoubleCommander_path() {
+    if WinExist("ahk_exe doublecmd.exe") {
+        ; 获取所有 doublecmd.exe 窗口
+        WinGet, dcWindows, List, ahk_exe doublecmd.exe
+        
+        Loop, %dcWindows% {
+            winId := dcWindows%A_Index%
+            WinGetClass, winClass, ahk_id %winId%
+            WinGetTitle, winTitle, ahk_id %winId%
+            if (winClass = "TTOTAL_CMD" && InStr(winTitle, "Double Commander")) {
+                ; 找到主窗口，保存其ID
+                dcMainWinId := winId
+                break
+            }
+        }
+        ; 向后台 Double Commander 主窗口发送 Ctrl+Shift+F12 快捷键
+        ControlSend, , ^+{F12}, ahk_id %dcMainWinId%
+
+        ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
+        Sleep, 500
+
+        ; 假设 Ctrl+Shift+F12 会生成包含路径的文件，读取该文件
+        ; 您需要根据实际的 Lua 脚本输出文件路径来修改这里
+        EnvGet, tempPath, TEMP
+        tempFile := tempPath . "\dc_tabs_output.txt"
+        
+        if FileExist(tempFile) {
+            FileEncoding, UTF-8
+            FileRead, dcTabPaths, %tempFile%
+            FileDelete, %tempFile%  ; 清理临时文件
+            ; MsgBox, %dcTabPaths%
+            return dcTabPaths
+        } else {
+            ; MsgBox, "tempFile 不存在"
+            ; 如果文件方法失败，回退到窗口标题方法
+            WinGetTitle, dcTitle, ahk_exe doublecmd.exe
+            if RegExMatch(dcTitle, "\(([A-Z]:\\.*?)[\\]?\)", match) {
+                dcPath := match1
+                return dcPath
+            }
+        }
+    }
+}
+
 ;-----------历史打开路径------------------------------------------------
 HistoryOpenPath(软件安装路径2:=""){
     folder汇总:=""
