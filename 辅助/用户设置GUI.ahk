@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.5.0.1"
+窗口标题名:="XiaoYao_快速跳转v4.5.1"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -25,121 +25,85 @@ Return
 
 读取配置:
     if FileExist(软件配置路径 "\个人配置.ini"){
-        IniRead, 热键, %软件配置路径%\个人配置.ini,基础配置,热键
-        IniRead, 自动弹出菜单, %软件配置路径%\个人配置.ini,基础配置,自动弹出菜单
-        IniRead, 菜单背景颜色, %软件配置路径%\个人配置.ini,基础配置,菜单背景颜色
-        IniRead, 延迟自动弹出时间, %软件配置路径%\个人配置.ini,基础配置,延迟自动弹出时间
+        热键:=Var_Read("热键","","基础配置",软件配置路径 "\个人配置.ini","否")
+        自动弹出菜单:=Var_Read("自动弹出菜单","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        菜单背景颜色:=Var_Read("菜单背景颜色","","基础配置",软件配置路径 "\个人配置.ini","是")
+        延迟自动弹出时间:=Var_Read("延迟自动弹出时间","100","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 自定义常用路径2, %软件配置路径%\个人配置.ini,常用路径
-        自定义常用路径:=ReplaceVars(自定义常用路径2)
+        自定义常用路径2:=Var_Read("","","常用路径",软件配置路径 "\个人配置.ini","是")
+        自定义常用路径2:=ReplaceVars(自定义常用路径2)
 
-        IniRead, 替换双斜杠单反斜杠双引号, %软件配置路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
-        if (替换双斜杠单反斜杠双引号="" || 替换双斜杠单反斜杠双引号="ERROR")
-            替换双斜杠单反斜杠双引号:="关闭"
+        替换双斜杠单反斜杠双引号:=Var_Read("替换双斜杠单反斜杠双引号","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        DirectoryOpus全标签路径:=Var_Read("DirectoryOpus全标签路径","开启","基础配置",软件配置路径 "\个人配置.ini","是")
+        弹出位置X坐标:=Var_Read("弹出位置X坐标","","基础配置",软件配置路径 "\个人配置.ini","是")
+        弹出位置Y坐标:=Var_Read("弹出位置Y坐标","","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, DirectoryOpus全标签路径, %软件配置路径%\个人配置.ini,基础配置,DirectoryOpus全标签路径
+        一键跳转热键:=Var_Read("一键跳转热键","","基础配置",软件配置路径 "\个人配置.ini","否")
+        跳转方式:=Var_Read("跳转方式","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        保留个数:=Var_Read("历史跳转保留数","5","基础配置",软件配置路径 "\个人配置.ini","是")
+        开机自启:=Var_Read("开机自启","0","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 弹出位置X坐标, %软件配置路径%\个人配置.ini,基础配置,弹出位置X坐标
-        IniRead, 弹出位置Y坐标, %软件配置路径%\个人配置.ini,基础配置,弹出位置Y坐标
+        DO的收藏夹:=Var_Read("DO的收藏夹","开启","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 一键跳转热键, %软件配置路径%\个人配置.ini,基础配置,一键跳转热键
-        IniRead, 跳转方式, %软件配置路径%\个人配置.ini,基础配置,跳转方式
-        IniRead, 保留个数, %软件配置路径%\个人配置.ini,基础配置,历史跳转保留数
-        if (保留个数="" || 保留个数="ERROR")
-            保留个数:="5"
-        IniRead, 开机自启, %软件配置路径%\个人配置.ini,基础配置,开机自启
-        if (开机自启="" || 开机自启="ERROR" || 开机自启="关闭")
-            开机自启:="0"
-        IniRead, DO的收藏夹, %软件配置路径%\个人配置.ini,基础配置,DO的收藏夹
+        自动弹出常驻窗口:=Var_Read("自动弹出常驻窗口","开启","基础配置",软件配置路径 "\个人配置.ini","是")
+        常驻搜索窗口呼出热键:=Var_Read("常驻搜索窗口呼出热键","","基础配置",软件配置路径 "\个人配置.ini","否")
+        窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X - 10 + 父窗口W","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 50","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口初始宽度:=Var_Read("窗口初始宽度","300","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口初始高度:=Var_Read("窗口初始高度","360","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口背景颜色:=Var_Read("窗口背景颜色","","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口字体颜色:=Var_Read("窗口字体颜色","","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口字体名称:=Var_Read("窗口字体名称","","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口字体大小:=Var_Read("窗口字体大小","9","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口透明度:=Var_Read("窗口透明度","245","基础配置",软件配置路径 "\个人配置.ini","是")
+        失效路径显示设置:=Var_Read("失效路径显示设置","开启","基础配置",软件配置路径 "\个人配置.ini","是")
+        文件夹名显示在前:=Var_Read("文件夹名显示在前","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        菜单全局热键:=Var_Read("菜单全局热键","","基础配置",软件配置路径 "\个人配置.ini","否")
+        常驻窗口全局热键:=Var_Read("常驻窗口全局热键","","基础配置",软件配置路径 "\个人配置.ini","否")
+        全局性菜单项功能:=Var_Read("全局性菜单项功能","复制到剪切板","基础配置",软件配置路径 "\个人配置.ini","是")
+        初始文本框内容:=Var_Read("初始文本框内容","当前打开","基础配置",软件配置路径 "\个人配置.ini","是")
+        是否加载图标:=Var_Read("是否加载图标","开启","基础配置",软件配置路径 "\个人配置.ini","是")
+        给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",软件配置路径 "\个人配置.ini","是")
+        常用路径最多显示数量:=Var_Read("常用路径最多显示数量","9","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 自动弹出常驻窗口, %软件配置路径%\个人配置.ini,基础配置,自动弹出常驻窗口
-        IniRead, 常驻搜索窗口呼出热键, %软件配置路径%\个人配置.ini,基础配置,常驻搜索窗口呼出热键
-        IniRead, 窗口初始坐标x, %软件配置路径%\个人配置.ini,基础配置,窗口初始坐标x
-        IniRead, 窗口初始坐标y, %软件配置路径%\个人配置.ini,基础配置,窗口初始坐标y
-        IniRead, 窗口初始宽度, %软件配置路径%\个人配置.ini,基础配置,窗口初始宽度
-        IniRead, 窗口初始高度, %软件配置路径%\个人配置.ini,基础配置,窗口初始高度
-        IniRead, 窗口背景颜色, %软件配置路径%\个人配置.ini,基础配置,窗口背景颜色
-        IniRead, 窗口字体颜色, %软件配置路径%\个人配置.ini,基础配置,窗口字体颜色
-        IniRead, 窗口字体名称, %软件配置路径%\个人配置.ini,基础配置,窗口字体名称
-        IniRead, 窗口字体大小, %软件配置路径%\个人配置.ini,基础配置,窗口字体大小
-        IniRead, 窗口透明度, %软件配置路径%\个人配置.ini,基础配置,窗口透明度
-
-        IniRead, 失效路径显示设置, %软件配置路径%\个人配置.ini,基础配置,失效路径显示设置
-        if (失效路径显示设置="" || 失效路径显示设置="ERROR")
-            失效路径显示设置:="开启"
-
-        IniRead, 文件夹名显示在前, %软件配置路径%\个人配置.ini,基础配置,文件夹名显示在前
-        if (文件夹名显示在前="" || 文件夹名显示在前="ERROR")
-            文件夹名显示在前:="关闭"
-
-        IniRead, 菜单全局热键, %软件配置路径%\个人配置.ini,基础配置,菜单全局热键
-        IniRead, 常驻窗口全局热键, %软件配置路径%\个人配置.ini,基础配置,常驻窗口全局热键
-        IniRead, 全局性菜单项功能, %软件配置路径%\个人配置.ini,基础配置,全局性菜单项功能
-        IniRead, 初始文本框内容, %软件配置路径%\个人配置.ini,基础配置,初始文本框内容
-        IniRead, 是否加载图标, %软件配置路径%\个人配置.ini,基础配置,是否加载图标
-
-        IniRead, 给dc发送热键, %软件配置路径%\个人配置.ini,基础配置,给dc发送热键
-        if (给dc发送热键="" || 给dc发送热键="ERROR")
-            给dc发送热键:= "^+{F12}"
-
-        IniRead, 常用路径最多显示数量, %软件配置路径%\个人配置.ini,基础配置,常用路径最多显示数量
-        if (常用路径最多显示数量="" || 常用路径最多显示数量="ERROR")
-            常用路径最多显示数量:="9"
-
-        IniRead, 常驻窗口窗口列表, %软件配置路径%\个人配置.ini,窗口列表1
-        if (常驻窗口窗口列表="" || 常驻窗口窗口列表="ERROR"){
-            常驻窗口窗口列表:="
+        默认常驻窗口窗口列表:="
 (
 选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe
 选择 ahk_class #32770 ahk_exe Bandizip.exe
 解压路径和选项 ahk_class #32770 ahk_exe WinRAR.exe
 选择目标文件夹 ahk_class #32770 ahk_exe dopus.exe
 )"
-        }
+        常驻窗口窗口列表:=Var_Read("",默认常驻窗口窗口列表,"窗口列表1",软件配置路径 "\个人配置.ini","是")
+        屏蔽xiaoyao程序列表:=Var_Read("屏蔽xiaoyao程序列表","War3.exe,dota2.exe,League of Legends.exe","基础配置",软件配置路径 "\个人配置.ini","是")
+        屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",软件配置路径 "\个人配置.ini","是")
+        深浅主题切换:=Var_Read("深浅主题切换","跟随系统","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 屏蔽xiaoyao窗口列表,%软件配置路径%\个人配置.ini,窗口列表2
-        if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
-            屏蔽xiaoyao窗口列表:="
-(
-ahk_exe IDMan.exe
-)"
-        }
+        窗口文本行距:=Var_Read("窗口文本行距","20","基础配置",软件配置路径 "\个人配置.ini","是")
+        隐藏软件托盘图标:=Var_Read("隐藏软件托盘图标","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        手动弹出计数:=Var_Read("手动弹出计数","0","基础配置",软件配置路径 "\个人配置.ini","是")
+        自动弹出菜单计数:=Var_Read("自动弹出菜单计数","0","基础配置",软件配置路径 "\个人配置.ini","是")
+        自动弹出常驻窗口次数:=Var_Read("自动弹出常驻窗口次数","0","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 屏蔽xiaoyao程序列表,%软件配置路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
-        if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
-            屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
+        自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件配置路径 "\个人配置.ini","是"))
+        管理员启动:=Var_Read("管理员启动","开启","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 窗口文本行距, %软件配置路径%\个人配置.ini,基础配置,窗口文本行距
-        if (窗口文本行距="" || 窗口文本行距="ERROR")
-            窗口文本行距:= "20"
+        自定义_当前打开:=Var_Read("自定义_当前打开","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_常用路径:=Var_Read("自定义_常用路径","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_历史打开:=Var_Read("自定义_历史打开","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_全部路径:=Var_Read("自定义_全部路径","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_do收藏夹:=Var_Read("自定义_do收藏夹","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_粘贴:=Var_Read("自定义_粘贴","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_更多:=Var_Read("自定义_更多","1","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        IniRead, 隐藏软件托盘图标, %软件配置路径%\个人配置.ini,基础配置,隐藏软件托盘图标
-        if (隐藏软件托盘图标="" || 隐藏软件托盘图标="ERROR")
-            隐藏软件托盘图标:= "关闭"
-        IniRead, 手动弹出计数,  %软件配置路径%\个人配置.ini,基础配置,手动弹出计数
-        if (手动弹出计数="" || 手动弹出计数="ERROR")
-            手动弹出计数:= "0"
-        IniRead, 自动弹出菜单计数,  %软件配置路径%\个人配置.ini,基础配置,自动弹出菜单计数
-        if (自动弹出菜单计数="" || 自动弹出菜单计数="ERROR")
-            自动弹出菜单计数:= "0"
-        IniRead, 自动弹出常驻窗口次数, %软件配置路径%\个人配置.ini,基础配置,自动弹出常驻窗口次数
-        if (自动弹出常驻窗口次数="" || 自动弹出常驻窗口次数="ERROR")
-            自动弹出常驻窗口次数:= "0"
-
-        IniRead, 自动跳转到默认路径, %软件配置路径%\个人配置.ini,基础配置,自动跳转到默认路径
-        if (自动跳转到默认路径="" || 自动跳转到默认路径="ERROR")
-            自动跳转到默认路径:= "关闭"
-        IniRead, 历史路径设为默认路径, %软件配置路径%\个人配置.ini,基础配置,历史路径设为默认路径
-        if (历史路径设为默认路径="" || 历史路径设为默认路径="ERROR")
-            历史路径设为默认路径:= "关闭"
-
-        IniRead, 默认路径, %软件配置路径%\个人配置.ini,基础配置,默认路径
-        if (默认路径="ERROR")
-            默认路径:= ""
-
-        IniRead, 管理员启动,%软件配置路径%\个人配置.ini,基础配置,管理员启动
-        if !(管理员启动="关闭")
-            管理员启动:="开启"
+        自定义_当前打开_文本 :=Var_Read("自定义_当前打开_文本","当前","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_常用路径_文本 :=Var_Read("自定义_常用路径_文本","常用","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_历史打开_文本 :=Var_Read("自定义_历史打开_文本","历史","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_全部路径_文本 :=Var_Read("自定义_全部路径_文本","全部","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_do收藏夹_文本 :=Var_Read("自定义_do收藏夹_文本","dopus","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_粘贴_文本 :=Var_Read("自定义_粘贴_文本","粘贴","基础配置",软件配置路径 "\个人配置.ini","是")
+        自定义_更多_文本 :=Var_Read("自定义_更多_文本","更多","基础配置",软件配置路径 "\个人配置.ini","是")
     }
 Return
 
@@ -182,6 +146,9 @@ Return
     菜单颜色:=菜单背景颜色
     热键1:=热键
     热键2:=一键跳转热键
+
+    深浅主题切换1:=深浅主题切换
+    深浅主题切换1 := 深浅主题切换1="跟随系统"?0:深浅主题切换1="浅色"?1:深浅主题切换1="深色"?2:1
 
     IniRead, 自定义常用路径2, %软件配置路径%\个人配置.ini,常用路径
     常用路径1:=自定义常用路径2
@@ -252,10 +219,11 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v是否加载图标, %OnOffState%
     GuiControl, Choose, 是否加载图标,% 是否加载图标+1
 
-    Gui, 55:Add, GroupBox, xm y+50 w%group_width_55% h190, 常用路径设置【支持ahk内置变量 写法：`%A_Desktop`%】
-    Gui, 55:Add, Text,Cblue x375 yp w70 g打开使用文档, 更多写法:
+    Gui, 55:Add, GroupBox, xm y+50 w%group_width_55% h190, 常用路径设置【支持ahk内置变量】
+    Gui, 55:Add, Button, x295 yp-5 g添加子分类, 添加子分类
+    Gui, 55:Add, Text,Cblue x375 yp+5 w70 g打开使用文档, 更多写法:
 
-    Gui, 55:Add, Edit, xm+%left_margin% yp+20 w400 r9 v常用路径1, %常用路径1%
+    Gui, 55:Add, Edit, xm+%left_margin% yp+27 w400 r8 HScroll -Wrap v常用路径1, %常用路径1%
 
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
@@ -294,35 +262,58 @@ Return
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 窗口初始坐标y：
     Gui, 55:Add, Edit, x+5 yp-2 w200 h25 v窗口初始坐标y2, %窗口初始坐标y%
 
-    Gui, 55:Add, GroupBox, xm y+20 w%group_width_55% h230, 【更多】设置
+    Gui, 55:Add, GroupBox, xm y+20 w200 h255, 【更多】设置
+    Gui, 55:Add, GroupBox, x+10 yp w200 h255, 【顶部按钮显示/隐藏】设置
+
     Gui, 55:Add, Text, xm+%left_margin% yp+25, 初始宽度：
     Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口初始宽度2, %窗口初始宽度%
 
-    Gui, 55:Add, Text, x+20 yp+2, 文本行距：
-    Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口文本行距, %窗口文本行距%
+    Gui, 55:Add, CheckBox,Checked%自定义_当前打开% x+20 yp+2 v自定义_当前打开 gOnCheckBoxChange1, 当前打开:
+    Gui, 55:Add, Edit, x+5 yp-2 w110 h25 v自定义_当前打开_文本 +Disabled, %自定义_当前打开_文本%
 
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 初始高度：
     Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口初始高度2, %窗口初始高度%
 
+    Gui, 55:Add, CheckBox,Checked%自定义_常用路径% x+20 yp+2 v自定义_常用路径 gOnCheckBoxChange2, 常用路径:
+    Gui, 55:Add, Edit, x+5 yp-2 w110 h25 v自定义_常用路径_文本 +Disabled, %自定义_常用路径_文本%
+
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 背景颜色：
     Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口背景颜色2, %窗口背景颜色%
+
+    Gui, 55:Add, CheckBox,Checked%自定义_历史打开% x+20 yp+2 v自定义_历史打开 gOnCheckBoxChange3, 历史打开:
+    Gui, 55:Add, Edit, x+5 yp-2 w110 h25 v自定义_历史打开_文本 +Disabled, %自定义_历史打开_文本%
 
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 字体颜色：
     Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口字体颜色2, %窗口字体颜色%
 
+    Gui, 55:Add, CheckBox,Checked%自定义_全部路径% x+20 yp+2 v自定义_全部路径 gOnCheckBoxChange4, 全部路径:
+    Gui, 55:Add, Edit, x+5 yp-2 w110 h25 v自定义_全部路径_文本 +Disabled, %自定义_全部路径_文本%
+
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 字体名称：
     Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口字体名称2, %窗口字体名称%
+
+    Gui, 55:Add, CheckBox,Checked%自定义_do收藏夹% x+20 yp+2 v自定义_do收藏夹 gOnCheckBoxChange5, do收藏夹:
+    Gui, 55:Add, Edit, x+1 yp-2 w110 h25 v自定义_do收藏夹_文本 +Disabled, %自定义_do收藏夹_文本%
 
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 字体大小：
     Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口字体大小2, %窗口字体大小%
 
+    Gui, 55:Add, CheckBox,Checked%自定义_粘贴% x+20 yp+2 v自定义_粘贴 gOnCheckBoxChange6, 粘贴:
+    Gui, 55:Add, Edit, x+29 yp-2 w110 h25 v自定义_粘贴_文本 +Disabled, %自定义_粘贴_文本%
+
+    Gui, 55:Add, Text, xm+%left_margin% yp+30, 文本行距：
+    Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口文本行距, %窗口文本行距%
+
+    Gui, 55:Add, CheckBox,Checked%自定义_更多% x+20 yp+2 v自定义_更多 gOnCheckBoxChange7, 更多:
+    Gui, 55:Add, Edit, x+29 yp-2 w110 h25 v自定义_更多_文本 +Disabled, %自定义_更多_文本%
+
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 透明度：
     Gui, 55:Add, Edit, x+17 yp-2 w120 h25 v窗口透明度2, %窗口透明度%
 
-    Gui, 55:Add, Text, xm+%left_margin% yp+45 cred, 初始文本框的内容:
+    Gui, 55:Add, Text, x+20 yp+2 cred, 初始文本框内容:
     if (初始文本框内容="" || 初始文本框内容="ERROR")
         初始文本框内容:="当前打开"
-    Gui, 55:Add, ComboBox, x+5 yp-2 w%text_width% v初始文本框内容, %初始文本框内容%||当前打开|常用路径|历史打开|全部路径|do收藏夹
+    Gui, 55:Add, ComboBox, x+5 yp-2 w99 v初始文本框内容, %初始文本框内容%||当前打开|常用路径|历史打开|全部路径|do收藏夹
 
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
@@ -397,6 +388,10 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v跳转方式1, 1|2|3|4|5
     GuiControl, Choose, 跳转方式1, % 跳转方式1+1
 
+    Gui, 55:Add, Text, xm+%left_margin% yp+35, 深浅主题切换:
+    Gui, 55:Add, DropDownList, x+5 yp-4 w%text_width% v深浅主题切换1, 跟随系统|浅色|深色
+    GuiControl, Choose, 深浅主题切换1,% 深浅主题切换1+1
+
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
@@ -405,7 +400,7 @@ Return
     Gui,55:Tab,关于,,Exact
     Gui, 55:Add, Text, xm+%距离最左边的长度% ym+%距离最上边的长度% cblue, 作者：逍遥  https://github.com/lch319/XiaoYao_QuickJump
     Gui, 55:Add, Text, xm+%距离最左边的长度% yp+40 cblue, 在打开或保存对话框中，快速定位到当前打开的文件夹路径
-    Gui, 55:Add, Text, xm+%距离最左边的长度% yp+25 cblue, 支持 DO、TC、XY、Q-Dir、Win11资源管理器
+    Gui, 55:Add, Text, xm+%距离最左边的长度% yp+25 cblue, 支持 DO、TC、DC、XY、Q-Dir、Win11资源管理器
     Gui, 55:Add, Text, xm+%距离最左边的长度% yp+40 cblue, QQ交流群:246308937(答案:RunAny)
 
     Gui, 55:Add, Text, xm+%距离最左边的长度% yp+40 cblue, 致谢名单：
@@ -419,6 +414,15 @@ Return
     Gui, 55:Add, Text, xm+20 yp+20, 手动弹出菜单和常驻次数：%手动弹出计数%
     总次数:=自动弹出常驻窗口次数+自动弹出菜单计数+手动弹出计数
     Gui, 55:Add, Text, xm+20 yp+20, 总次数：%总次数%
+
+gosub,OnCheckBoxChange1
+gosub,OnCheckBoxChange2
+gosub,OnCheckBoxChange3
+gosub,OnCheckBoxChange4
+gosub,OnCheckBoxChange5
+gosub,OnCheckBoxChange6
+gosub,OnCheckBoxChange7
+
 
     GuiTitleContent := A_IsAdmin=1?"（管理员）":"（非管理员）"
     Gui,55: Show,w%Gui_width_55%,%窗口标题名%%GuiTitleContent%
@@ -483,6 +487,24 @@ Return
     IniWrite, %替换双斜杠单反斜杠双引号%, %软件配置路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
     IniWrite, %管理员启动%, %软件配置路径%\个人配置.ini,基础配置,管理员启动
     IniWrite, %给dc发送热键%, %软件配置路径%\个人配置.ini,基础配置,给dc发送热键
+
+    IniWrite, %深浅主题切换1%, %软件配置路径%\个人配置.ini,基础配置,深浅主题切换
+
+    IniWrite, %自定义_当前打开%, %软件配置路径%\个人配置.ini,基础配置,自定义_当前打开
+    IniWrite, %自定义_常用路径%, %软件配置路径%\个人配置.ini,基础配置,自定义_常用路径
+    IniWrite, %自定义_历史打开%, %软件配置路径%\个人配置.ini,基础配置,自定义_历史打开
+    IniWrite, %自定义_全部路径%, %软件配置路径%\个人配置.ini,基础配置,自定义_全部路径
+    IniWrite, %自定义_do收藏夹%, %软件配置路径%\个人配置.ini,基础配置,自定义_do收藏夹
+    IniWrite, %自定义_粘贴%, %软件配置路径%\个人配置.ini,基础配置,自定义_粘贴
+    IniWrite, %自定义_更多%, %软件配置路径%\个人配置.ini,基础配置,自定义_更多
+
+    IniWrite, %自定义_当前打开_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_当前打开_文本
+    IniWrite, %自定义_常用路径_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_常用路径_文本
+    IniWrite, %自定义_历史打开_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_历史打开_文本
+    IniWrite, %自定义_全部路径_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_全部路径_文本
+    IniWrite, %自定义_do收藏夹_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_do收藏夹_文本
+    IniWrite, %自定义_粘贴_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_粘贴_文本
+    IniWrite, %自定义_更多_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_更多_文本
 
     gosub, Menu_Reload
 Return
@@ -588,4 +610,58 @@ return
 
 RemoveToolTip:
     ToolTip
+return
+
+OnCheckBoxChange1:
+    Gui,55:Submit, NoHide
+    if (自定义_当前打开 = 1)
+        GuiControl, Enable, 自定义_当前打开_文本
+    else
+        GuiControl, Disable, 自定义_当前打开_文本
+return
+OnCheckBoxChange2:
+    Gui,55:Submit, NoHide
+    if (自定义_常用路径 = 1)
+        GuiControl, Enable, 自定义_常用路径_文本
+    else
+        GuiControl, Disable, 自定义_常用路径_文本
+return
+OnCheckBoxChange3:
+    Gui,55:Submit, NoHide
+    if (自定义_历史打开 = 1)
+        GuiControl, Enable, 自定义_历史打开_文本
+    else
+        GuiControl, Disable, 自定义_历史打开_文本
+return
+OnCheckBoxChange4:
+    Gui,55:Submit, NoHide
+    if (自定义_全部路径 = 1)
+        GuiControl, Enable, 自定义_全部路径_文本
+    else
+        GuiControl, Disable, 自定义_全部路径_文本
+return
+OnCheckBoxChange5:
+    Gui,55:Submit, NoHide
+    if (自定义_do收藏夹 = 1)
+        GuiControl, Enable, 自定义_do收藏夹_文本
+    else
+        GuiControl, Disable, 自定义_do收藏夹_文本
+return
+OnCheckBoxChange6:
+    Gui,55:Submit, NoHide
+    if (自定义_粘贴 = 1)
+        GuiControl, Enable, 自定义_粘贴_文本
+    else
+        GuiControl, Disable, 自定义_粘贴_文本
+return
+OnCheckBoxChange7:
+    Gui,55:Submit, NoHide
+    if (自定义_更多 = 1)
+        GuiControl, Enable, 自定义_更多_文本
+    else
+        GuiControl, Disable, 自定义_更多_文本
+return
+
+添加子分类:
+run,"%A_AhkPath%" "%A_ScriptDir%\设置更多子分类常用路径.ahk"
 return

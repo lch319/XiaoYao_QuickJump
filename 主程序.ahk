@@ -11,7 +11,11 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.5.0.1"
+软件版本号:="4.5.1"
+
+;如果配置不存在，新建一个默认配置
+if not FileExist(A_ScriptDir "\个人配置.ini")
+    FileCopy,%A_ScriptDir%\ICO\默认.ini, %A_ScriptDir%\个人配置.ini
 
 ;判断是否管理员启动
 Gosub, Label_AdminLaunch
@@ -46,93 +50,66 @@ global processList:="ahk_class #32770"
 global 全局历史跳转
 FileRead, 全局历史跳转, %A_ScriptDir%\ICO\历史跳转.ini
 
-;如果配置不存在，新建一个默认配置
-if not FileExist(A_ScriptDir "\个人配置.ini")
-    FileCopy,%A_ScriptDir%\ICO\默认.ini, %A_ScriptDir%\个人配置.ini
+热键:=Var_Read("热键","","基础配置",A_ScriptDir "\个人配置.ini","否")
+自动弹出菜单:=Var_Read("自动弹出菜单","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
+菜单背景颜色:=Var_Read("菜单背景颜色","","基础配置",A_ScriptDir "\个人配置.ini","是")
+延迟自动弹出时间:=Var_Read("延迟自动弹出时间","100","基础配置",A_ScriptDir "\个人配置.ini","是")
 
-IniRead, 热键, %A_ScriptDir%\个人配置.ini,基础配置,热键
-IniRead, 自动弹出菜单, %A_ScriptDir%\个人配置.ini,基础配置,自动弹出菜单
-IniRead, 菜单背景颜色, %A_ScriptDir%\个人配置.ini,基础配置,菜单背景颜色
-IniRead, 延迟自动弹出时间, %A_ScriptDir%\个人配置.ini,基础配置,延迟自动弹出时间
-
-IniRead, 自定义常用路径2, %A_ScriptDir%\个人配置.ini,常用路径
+自定义常用路径2:=Var_Read("","","常用路径",A_ScriptDir "\个人配置.ini","是")
 自定义常用路径2:=ReplaceVars(自定义常用路径2)
 
-IniRead, 替换双斜杠单反斜杠双引号, %A_ScriptDir%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
-if (替换双斜杠单反斜杠双引号="" || 替换双斜杠单反斜杠双引号="ERROR")
-    替换双斜杠单反斜杠双引号:="关闭"
+替换双斜杠单反斜杠双引号:=Var_Read("替换双斜杠单反斜杠双引号","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
 if (替换双斜杠单反斜杠双引号="开启"){
     自定义常用路径2:=RegExReplace(StrReplace(自定义常用路径2, """", ""), "\\\\|/", "\")
 }
 
-IniRead, DirectoryOpus全标签路径, %A_ScriptDir%\个人配置.ini,基础配置,DirectoryOpus全标签路径
+DirectoryOpus全标签路径:=Var_Read("DirectoryOpus全标签路径","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
+弹出位置X坐标:=Var_Read("弹出位置X坐标","","基础配置",A_ScriptDir "\个人配置.ini","是")
+弹出位置Y坐标:=Var_Read("弹出位置Y坐标","","基础配置",A_ScriptDir "\个人配置.ini","是")
 
-IniRead, 弹出位置X坐标, %A_ScriptDir%\个人配置.ini,基础配置,弹出位置X坐标
-IniRead, 弹出位置Y坐标, %A_ScriptDir%\个人配置.ini,基础配置,弹出位置Y坐标
+一键跳转热键:=Var_Read("一键跳转热键","","基础配置",A_ScriptDir "\个人配置.ini","否")
+跳转方式:=Var_Read("跳转方式","1","基础配置",A_ScriptDir "\个人配置.ini","是")
+保留个数:=Var_Read("历史跳转保留数","5","基础配置",A_ScriptDir "\个人配置.ini","是")
+开机自启:=Var_Read("开机自启","0","基础配置",A_ScriptDir "\个人配置.ini","是")
 
-IniRead, 一键跳转热键, %A_ScriptDir%\个人配置.ini,基础配置,一键跳转热键
-IniRead, 跳转方式, %A_ScriptDir%\个人配置.ini,基础配置,跳转方式
-IniRead, 保留个数, %A_ScriptDir%\个人配置.ini,基础配置,历史跳转保留数
-if (保留个数="" || 保留个数="ERROR")
-    保留个数:="5"
-IniRead, 开机自启, %A_ScriptDir%\个人配置.ini,基础配置,开机自启
-if (开机自启="" || 开机自启="ERROR" || 开机自启="关闭")
-    开机自启:="0"
-IniRead, DO的收藏夹, %A_ScriptDir%\个人配置.ini,基础配置,DO的收藏夹
+DO的收藏夹:=Var_Read("DO的收藏夹","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
 if (DO的收藏夹="开启")
     do收藏夹所有路径:=DirectoryOpusgetfa()
 
-IniRead, 自动弹出常驻窗口, %A_ScriptDir%\个人配置.ini,基础配置,自动弹出常驻窗口
-IniRead, 常驻搜索窗口呼出热键, %A_ScriptDir%\个人配置.ini,基础配置,常驻搜索窗口呼出热键
-IniRead, 窗口初始坐标x, %A_ScriptDir%\个人配置.ini,基础配置,窗口初始坐标x
-IniRead, 窗口初始坐标y, %A_ScriptDir%\个人配置.ini,基础配置,窗口初始坐标y
-IniRead, 窗口初始宽度, %A_ScriptDir%\个人配置.ini,基础配置,窗口初始宽度
-IniRead, 窗口初始高度, %A_ScriptDir%\个人配置.ini,基础配置,窗口初始高度
-IniRead, 窗口背景颜色, %A_ScriptDir%\个人配置.ini,基础配置,窗口背景颜色
-IniRead, 窗口字体颜色, %A_ScriptDir%\个人配置.ini,基础配置,窗口字体颜色
-IniRead, 窗口字体名称, %A_ScriptDir%\个人配置.ini,基础配置,窗口字体名称
-IniRead, 窗口字体大小, %A_ScriptDir%\个人配置.ini,基础配置,窗口字体大小
-IniRead, 窗口透明度, %A_ScriptDir%\个人配置.ini,基础配置,窗口透明度
+自动弹出常驻窗口:=Var_Read("自动弹出常驻窗口","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
+常驻搜索窗口呼出热键:=Var_Read("常驻搜索窗口呼出热键","","基础配置",A_ScriptDir "\个人配置.ini","否")
+窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X - 10 + 父窗口W","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 50","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口初始宽度:=Var_Read("窗口初始宽度","300","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口初始高度:=Var_Read("窗口初始高度","360","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口背景颜色:=Var_Read("窗口背景颜色","","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口字体颜色:=Var_Read("窗口字体颜色","","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口字体名称:=Var_Read("窗口字体名称","","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口字体大小:=Var_Read("窗口字体大小","9","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口透明度:=Var_Read("窗口透明度","245","基础配置",A_ScriptDir "\个人配置.ini","是")
+失效路径显示设置:=Var_Read("失效路径显示设置","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
+文件夹名显示在前:=Var_Read("文件夹名显示在前","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
+菜单全局热键:=Var_Read("菜单全局热键","","基础配置",A_ScriptDir "\个人配置.ini","否")
+常驻窗口全局热键:=Var_Read("常驻窗口全局热键","","基础配置",A_ScriptDir "\个人配置.ini","否")
+全局性菜单项功能:=Var_Read("全局性菜单项功能","复制到剪切板","基础配置",A_ScriptDir "\个人配置.ini","是")
+初始文本框内容:=Var_Read("初始文本框内容","当前打开","基础配置",A_ScriptDir "\个人配置.ini","是")
+是否加载图标:=Var_Read("是否加载图标","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
+常用路径最多显示数量:=Var_Read("常用路径最多显示数量","9","基础配置",A_ScriptDir "\个人配置.ini","是")
+屏蔽xiaoyao程序列表:=Var_Read("屏蔽xiaoyao程序列表","War3.exe,dota2.exe,League of Legends.exe","基础配置",A_ScriptDir "\个人配置.ini","是")
+深浅主题切换:=Var_Read("深浅主题切换","跟随系统","基础配置",A_ScriptDir "\个人配置.ini","是")
 
-IniRead, 失效路径显示设置, %A_ScriptDir%\个人配置.ini,基础配置,失效路径显示设置
-
-IniRead, 文件夹名显示在前, %A_ScriptDir%\个人配置.ini,基础配置,文件夹名显示在前
-if (文件夹名显示在前="" || 文件夹名显示在前="ERROR")
-    文件夹名显示在前:="关闭"
-
-IniRead, 菜单全局热键, %A_ScriptDir%\个人配置.ini,基础配置,菜单全局热键
-IniRead, 常驻窗口全局热键, %A_ScriptDir%\个人配置.ini,基础配置,常驻窗口全局热键
-IniRead, 全局性菜单项功能, %A_ScriptDir%\个人配置.ini,基础配置,全局性菜单项功能
-IniRead, 初始文本框内容, %A_ScriptDir%\个人配置.ini,基础配置,初始文本框内容
-IniRead, 是否加载图标, %A_ScriptDir%\个人配置.ini,基础配置,是否加载图标
-
-IniRead, 常用路径最多显示数量, %A_ScriptDir%\个人配置.ini,基础配置,常用路径最多显示数量
-if (常用路径最多显示数量="" || 常用路径最多显示数量="ERROR")
-    常用路径最多显示数量:="9"
-
-IniRead, 屏蔽xiaoyao程序列表,%A_ScriptDir%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
-if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
-    屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
-
-IniRead, 常驻窗口窗口列表, %A_ScriptDir%\个人配置.ini,窗口列表1
-if (常驻窗口窗口列表="" || 常驻窗口窗口列表="ERROR"){
-    常驻窗口窗口列表:="
+默认常驻窗口窗口列表:="
 (
 选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe
 选择 ahk_class #32770 ahk_exe Bandizip.exe
 解压路径和选项 ahk_class #32770 ahk_exe WinRAR.exe
 选择目标文件夹 ahk_class #32770 ahk_exe dopus.exe
 )"
-}
+常驻窗口窗口列表:=Var_Read("",默认常驻窗口窗口列表,"窗口列表1",A_ScriptDir "\个人配置.ini","是")
 
 ;----------------黑名单窗列表读取-----------
-IniRead, 屏蔽xiaoyao窗口列表,%A_ScriptDir%\个人配置.ini,窗口列表2
-if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
-    屏蔽xiaoyao窗口列表:="
-(
-ahk_exe IDMan.exe
-)"
-}
+屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",A_ScriptDir "\个人配置.ini","是")
+
 ;常驻窗口窗口列表:="选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe`n选择 ahk_class #32770 ahk_exe Bandizip.exe"
 ; 解析窗口列表到数组
 windows2 := []
@@ -148,24 +125,27 @@ Loop, Parse, 屏蔽xiaoyao程序列表, `,
 }
 ;----------------黑名单窗列表读取-----------
 
-IniRead, 窗口文本行距, %A_ScriptDir%\个人配置.ini,基础配置,窗口文本行距
-if (窗口文本行距="" || 窗口文本行距="ERROR")
-    窗口文本行距:= "20"
+窗口文本行距:=Var_Read("窗口文本行距","20","基础配置",A_ScriptDir "\个人配置.ini","是")
+隐藏软件托盘图标:=Var_Read("隐藏软件托盘图标","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
+手动弹出计数:=Var_Read("手动弹出计数","0","基础配置",A_ScriptDir "\个人配置.ini","是")
+自动弹出菜单计数:=Var_Read("自动弹出菜单计数","0","基础配置",A_ScriptDir "\个人配置.ini","是")
+给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",A_ScriptDir "\个人配置.ini","是")
 
-IniRead, 隐藏软件托盘图标, %A_ScriptDir%\个人配置.ini,基础配置,隐藏软件托盘图标
-if (隐藏软件托盘图标="" || 隐藏软件托盘图标="ERROR")
-    隐藏软件托盘图标:= "关闭"
+loop 5
+{
+    常用路径开关%A_Index%:= Var_Read("常用路径开关" A_Index,"0","基础配置",A_ScriptDir "\个人配置.ini","是")
+    if (常用路径开关%A_Index%="1"){
+        常用路径名称%A_Index%:= Var_Read("常用路径名称" A_Index,"常用" A_Index,"基础配置",A_ScriptDir "\个人配置.ini","是")
+        常用路径%A_Index%:= ReplaceVars(Var_Read("","","常用路径" A_Index,A_ScriptDir "\个人配置.ini","是"))
+        if (替换双斜杠单反斜杠双引号="开启"){
+            常用路径%A_Index%:=RegExReplace(StrReplace(常用路径%A_Index%, """", ""), "\\\\|/", "\")
+        }
 
-IniRead, 手动弹出计数, %A_ScriptDir%\个人配置.ini,基础配置,手动弹出计数
-if (手动弹出计数="" || 手动弹出计数="ERROR")
-    手动弹出计数:= "0"
-IniRead, 自动弹出菜单计数, %A_ScriptDir%\个人配置.ini,基础配置,自动弹出菜单计数
-if (自动弹出菜单计数="" || 自动弹出菜单计数="ERROR")
-    自动弹出菜单计数:= "0"
-
-IniRead, 给dc发送热键, %A_ScriptDir%\个人配置.ini,基础配置,给dc发送热键
-if (给dc发送热键="" || 给dc发送热键="ERROR")
-    给dc发送热键:= "^+{F12}"
+    }Else{
+        常用路径名称%A_Index%:= ""
+        常用路径%A_Index%:=""
+    }
+}
 
 OnExit, 退出时运行
 
@@ -209,6 +189,14 @@ if not (一键跳转热键="" || 一键跳转热键="ERROR")
 if not (常驻搜索窗口呼出热键="" || 常驻搜索窗口呼出热键="ERROR")
     Hotkey, %常驻搜索窗口呼出热键%, 打开常驻搜索窗口
 Hotkey, If
+
+;深色/浅色主题切换1【开始】---------------------------------
+if (IsDarkMode() and 深浅主题切换="跟随系统") or (深浅主题切换="深色"){
+    Menu_Dark(2)    ;菜单强制深色
+    if (菜单背景颜色="")
+        菜单背景颜色 := "0x202020" ; 深色背景
+}
+;深色/浅色主题切换1【结束】---------------------------------
 
 ;------------------ 自动弹出菜单设置 ------------------
 ;If (自动弹出常驻窗口="开启")
@@ -331,7 +319,7 @@ ShowMenu:
             Menu ContextMenu, Add, %TotalCommanderpath2%, Choice
             if (是否加载图标 !="关闭")
                 Menu ContextMenu, Icon, %TotalCommanderpath2%, ICO/Totalcmd.ico
-        }        
+        }
     }
     SetTitleMatchMode 1
     ; ------------------ XYplorer ------------------
@@ -378,8 +366,8 @@ ShowMenu:
     }
     ; ------------------ 常用路径 ------------------
     自定义常用路径:=程序专属路径筛选(自定义常用路径2)
-
-    Menu ContextMenu, Add
+    if (深浅主题切换="浅色" or (深浅主题切换="跟随系统" and not IsDarkMode()))
+        Menu ContextMenu, Add
     Menu ContextMenu, Add, < 常用路径 >, Choice
     Menu ContextMenu, Disable, < 常用路径 >
     ;在ini配置里添加自定义路径，`n隔开，只修改其中路径即可
@@ -410,8 +398,34 @@ ShowMenu:
             }
         }
     }
+
+    Loop, 5
+    {
+        常用路径%A_Index%:= 程序专属路径筛选(常用路径%A_Index%)
+        if (常用路径开关%A_Index%="1" and 常用路径%A_Index%!="" and 常用路径名称%A_Index%!=""){
+            常用路径名称:= 常用路径名称%A_Index%
+            更多常用路径:="更多常用路径" A_Index
+            Loop, parse, 常用路径%A_Index%, `n, `r
+            {
+
+                if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+                    Menu, %更多常用路径%, Add, %A_LoopField%, Choice
+                    if (是否加载图标 !="关闭")
+                        Menu, %更多常用路径%, Icon,%A_LoopField%, shell32.dll, 4
+                }
+            }
+
+            Menu ContextMenu, Add, %常用路径名称%, :%更多常用路径%
+            if (是否加载图标 !="关闭")
+                Menu ContextMenu, Icon,%常用路径名称%, shell32.dll, 44
+            ;Gui,searchbox: Add, Button,x+0 y0 g常用路径%A_Index%,%常用路径名称%
+
+        }
+    }
+
     ; ------------------ 历史打开 ------------------
-    Menu ContextMenu, Add
+    if (深浅主题切换="浅色" or (深浅主题切换="跟随系统" and not IsDarkMode()))
+        Menu ContextMenu, Add
 
     Menu, 历史打开1, Add, 路径列表, Choice
     Menu, 历史打开1, Disable, 路径列表
@@ -869,17 +883,9 @@ return
 return
 
 读取默认路径配置:
-    IniRead, 自动跳转到默认路径,%A_ScriptDir%\个人配置.ini,基础配置,自动跳转到默认路径
-    if (自动跳转到默认路径="" || 自动跳转到默认路径="ERROR")
-        自动跳转到默认路径:= "关闭"
-    IniRead, 历史路径设为默认路径, %A_ScriptDir%\个人配置.ini,基础配置,历史路径设为默认路径
-    if (历史路径设为默认路径="" || 历史路径设为默认路径="ERROR")
-        历史路径设为默认路径:= "关闭"
-
-    IniRead, 默认路径, %A_ScriptDir%\个人配置.ini,基础配置,默认路径
-    if (默认路径="ERROR")
-        默认路径:= ""
-    默认路径:=ReplaceVars(默认路径)
+    自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
+    历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
+    默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",A_ScriptDir "\个人配置.ini","是"))
 return
 
 ; 检查窗口处于激活状态
@@ -949,10 +955,7 @@ WinActiveList2(窗口列表1111){
 return
 
 Label_AdminLaunch: ; 管理员启动
-    IniRead, 管理员启动, %A_ScriptDir%\个人配置.ini,基础配置,管理员启动
-    if !(管理员启动="关闭")
-        管理员启动:="开启"
-
+    管理员启动:=Var_Read("管理员启动","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
     if (!A_IsAdmin && 管理员启动="开启")
     {
         try

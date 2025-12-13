@@ -3,36 +3,6 @@
 #NoTrayIcon ;~不显示托盘图标
 #Persistent ;;~让脚本持久运行
 #Include %A_ScriptDir%\公用函数.ahk
-       
-; 暗黑模式相关函数
-Menu_Dark(d) { ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
-  static uxtheme := DllCall("GetModuleHandle", "str", "uxtheme", "ptr")
-  static SetPreferredAppMode := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 135, "ptr")
-  static FlushMenuThemes := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 136, "ptr")
-
-  DllCall(SetPreferredAppMode, "int", d) ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
-  DllCall(FlushMenuThemes)
-}
-
-; 读取系统深色模式状态
-IsDarkMode() {
-    ; 注册表路径和值名称
-    static RegPath := "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-    static ValueName := "AppsUseLightTheme"
-    
-    ; 读取注册表值
-    RegRead, AppsUseLightTheme, %RegPath%, %ValueName%
-    
-    ; AppsUseLightTheme = 0 表示深色模式，1 表示浅色模式
-    return (AppsUseLightTheme = 0)
-}
-
-; 根据系统主题自动设置模式
-global 系统深色模式状态 := IsDarkMode()
-if (系统深色模式状态)
-    Menu_Dark(2) ; 启用暗黑模式
-else
-    Menu_Dark(3) ; 启用浅色模式
 
 SetWinDelay, -1 ;设置在每次执行窗口命令,使用 -1 表示无延时
 SetBatchLines, -1   ;让操作以最快速度进行.
@@ -93,53 +63,62 @@ if (参数1="-常驻窗口跟随"){
     ;MsgBox, %软件安装路径%
 
     if FileExist(软件安装路径 "\个人配置.ini"){
-        IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
-        自定义常用路径:=ReplaceVars(自定义常用路径2)
+        ;自定义常用路径2:=ReplaceVars(Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是"))
+        替换双斜杠单反斜杠双引号:=Var_Read("替换双斜杠单反斜杠双引号","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+        DO的收藏夹:=Var_Read("DO的收藏夹","开启","基础配置",软件安装路径 "\个人配置.ini","是")
+        跳转方式:=Var_Read("跳转方式","1","基础配置",软件安装路径 "\个人配置.ini","是")
+        历史跳转保留数:=Var_Read("历史跳转保留数","5","基础配置",软件安装路径 "\个人配置.ini","是")
+        自动弹出常驻窗口:=Var_Read("自动弹出常驻窗口","开启","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X - 10 + 父窗口W","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 50","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口初始宽度:=Var_Read("窗口初始宽度","300","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口初始高度:=Var_Read("窗口初始高度","360","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口背景颜色:=Var_Read("窗口背景颜色","","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口字体颜色:=Var_Read("窗口字体颜色","","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口字体名称:=Var_Read("窗口字体名称","","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口字体大小:=Var_Read("窗口字体大小","9","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口透明度:=Var_Read("窗口透明度","225","基础配置",软件安装路径 "\个人配置.ini","是")
+        文件夹名显示在前:=Var_Read("文件夹名显示在前","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+        全局性菜单项功能:=Var_Read("全局性菜单项功能","复制到剪切板","基础配置",软件安装路径 "\个人配置.ini","是")
+        初始文本框内容:=Var_Read("初始文本框内容","当前打开","基础配置",软件安装路径 "\个人配置.ini","是")
+        失效路径显示设置:=Var_Read("失效路径显示设置","开启","基础配置",软件安装路径 "\个人配置.ini","是")
+        给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口文本行距:=Var_Read("窗口文本行距","20","基础配置",软件安装路径 "\个人配置.ini","是")
+        屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",软件安装路径 "\个人配置.ini","是")
+        屏蔽xiaoyao程序列表:=Var_Read("屏蔽xiaoyao程序列表","War3.exe,dota2.exe,League of Legends.exe","基础配置",软件安装路径 "\个人配置.ini","是")
+        深浅主题切换:=Var_Read("深浅主题切换","跟随系统","基础配置",软件安装路径 "\个人配置.ini","是")
 
-        IniRead, 替换双斜杠单反斜杠双引号, %软件安装路径%\个人配置.ini,基础配置,替换双斜杠单反斜杠双引号
-        if (替换双斜杠单反斜杠双引号="" || 替换双斜杠单反斜杠双引号="ERROR")
-            替换双斜杠单反斜杠双引号:="关闭"
+        自定义_当前打开:=Var_Read("自定义_当前打开","1","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_常用路径:=Var_Read("自定义_常用路径","1","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_历史打开:=Var_Read("自定义_历史打开","1","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_全部路径:=Var_Read("自定义_全部路径","1","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_do收藏夹:=Var_Read("自定义_do收藏夹","1","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_粘贴:=Var_Read("自定义_粘贴","1","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_更多:=Var_Read("自定义_更多","1","基础配置",软件安装路径 "\个人配置.ini","是")
 
-        IniRead, DO的收藏夹, %软件安装路径%\个人配置.ini,基础配置,DO的收藏夹
+        自定义_当前打开_文本 :=Var_Read("自定义_当前打开_文本","当前","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_常用路径_文本 :=Var_Read("自定义_常用路径_文本","常用","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_历史打开_文本 :=Var_Read("自定义_历史打开_文本","历史","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_全部路径_文本 :=Var_Read("自定义_全部路径_文本","全部","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_do收藏夹_文本 :=Var_Read("自定义_do收藏夹_文本","dopus","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_粘贴_文本 :=Var_Read("自定义_粘贴_文本","粘贴","基础配置",软件安装路径 "\个人配置.ini","是")
+        自定义_更多_文本 :=Var_Read("自定义_更多_文本","更多","基础配置",软件安装路径 "\个人配置.ini","是")
 
-        IniRead, 跳转方式, %软件安装路径%\个人配置.ini,基础配置,跳转方式
-
-        IniRead, 历史跳转保留数, %软件安装路径%\个人配置.ini,基础配置,历史跳转保留数
-
-        IniRead, 自动弹出常驻窗口, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口
-        IniRead, 窗口初始坐标x, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标x
-        IniRead, 窗口初始坐标y, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标y
-        IniRead, 窗口初始宽度, %软件安装路径%\个人配置.ini,基础配置,窗口初始宽度
-        IniRead, 窗口初始高度, %软件安装路径%\个人配置.ini,基础配置,窗口初始高度
-        IniRead, 窗口背景颜色, %软件安装路径%\个人配置.ini,基础配置,窗口背景颜色
-        IniRead, 窗口字体颜色, %软件安装路径%\个人配置.ini,基础配置,窗口字体颜色
-        IniRead, 窗口字体名称, %软件安装路径%\个人配置.ini,基础配置,窗口字体名称
-        IniRead, 窗口字体大小, %软件安装路径%\个人配置.ini,基础配置,窗口字体大小
-        IniRead, 窗口透明度, %软件安装路径%\个人配置.ini,基础配置,窗口透明度
-        IniRead, 文件夹名显示在前, %软件安装路径%\个人配置.ini,基础配置,文件夹名显示在前
-        IniRead, 全局性菜单项功能, %软件安装路径%\个人配置.ini,基础配置,全局性菜单项功能
-        IniRead, 初始文本框内容, %软件安装路径%\个人配置.ini,基础配置,初始文本框内容
-        IniRead, 失效路径显示设置, %软件安装路径%\个人配置.ini,基础配置,失效路径显示设置
-
-        IniRead, 给dc发送热键, %软件安装路径%\个人配置.ini,基础配置,给dc发送热键
-        if (给dc发送热键="" || 给dc发送热键="ERROR")
-            给dc发送热键:= "^+{F12}"
-
-        IniRead, 窗口文本行距, %软件安装路径%\个人配置.ini,基础配置,窗口文本行距
-        if (窗口文本行距="" || 窗口文本行距="ERROR")
-            窗口文本行距:= "20"
-
-        IniRead, 屏蔽xiaoyao窗口列表, %软件安装路径%\个人配置.ini,窗口列表2
-        if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
-            屏蔽xiaoyao窗口列表:="
-(
-ahk_exe IDMan.exe
-)"
+        loop 5
+        {
+            常用路径开关%A_Index%:= Var_Read("常用路径开关" A_Index,"0","基础配置",软件安装路径 "\个人配置.ini","是")
+            if (常用路径开关%A_Index%="1"){
+                常用路径名称%A_Index%:= Var_Read("常用路径名称" A_Index,"常用" A_Index,"基础配置",软件安装路径 "\个人配置.ini","是")
+                常用路径%A_Index%:= 程序专属路径筛选(ReplaceVars(Var_Read("","","常用路径" A_Index,软件安装路径 "\个人配置.ini","是")))
+                if (替换双斜杠单反斜杠双引号="开启")
+                    常用路径%A_Index%:=RegExReplace(StrReplace(常用路径%A_Index%, """", ""), "\\\\|/", "\")
+                    if (文件夹名显示在前="开启")
+                        常用路径%A_Index%:=给行首加文件名(常用路径%A_Index%)
+            }Else{
+                常用路径名称%A_Index%:= ""
+                常用路径%A_Index%:=""
+            }
         }
-
-        IniRead, 屏蔽xiaoyao程序列表,%软件安装路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
-        if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
-            屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
 
     }
     ;-------------------------------------------------------------------
@@ -169,7 +148,7 @@ if (参数1="-跳转事件"){
     global 软件安装路径:= parentDir
 
     if FileExist(软件安装路径 "\个人配置.ini"){
-        IniRead, 跳转方式, %软件安装路径%\个人配置.ini,基础配置,跳转方式
+        跳转方式:=Var_Read("跳转方式","1","基础配置",软件安装路径 "\个人配置.ini","是")
     }
     另存为窗口id值:= 参数2
     跳转目标路径:= 参数3
@@ -189,82 +168,80 @@ Return
     }
 
     Gui,searchbox:Destroy
+
+    ;深色/浅色主题切换1【开始】---------------------------------
+    if (IsDarkMode() and 深浅主题切换="跟随系统") or (深浅主题切换="深色"){
+        Menu_Dark(2)    ;菜单强制深色
+        if (窗口背景颜色="")
+            窗口背景颜色 := "0x202020" ; 深色背景
+        if (窗口字体颜色="")
+            窗口字体颜色 := "0xE0E0E0" ; 浅色字体
+    }
+    ;深色/浅色主题切换1【结束】---------------------------------
+
     global Gui_winID
     ;Gui,searchbox: +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
     Gui,searchbox: +Resize +AlwaysOnTop +ToolWindow +E0x08000000 +HwndGui_winID
     ;Clipboard:= Gui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
-    ; 根据系统主题动态设置窗口背景和字体颜色
-    if (窗口背景颜色="") {
-        if (系统深色模式状态)
-            窗口背景颜色 := "0x202020" ; 深色背景
-        else
-            窗口背景颜色 := "0xF0F0F0" ; 浅色背景
-    }
-    if (窗口字体颜色="") {
-        if (系统深色模式状态)
-            窗口字体颜色 := "0xE0E0E0" ; 浅色字体
-        else
-            窗口字体颜色 := "0x202020" ; 深色字体
-    }
-    
     Gui,searchbox: Color,%窗口背景颜色%,%窗口背景颜色%
     Gui,searchbox: Font,c%窗口字体颜色%,%窗口字体名称%
 
-    ; 添加按钮并根据系统主题设置样式
-    Gui,searchbox: Add, Button,x-2 y0 g当前打开 HwndBtn1,当前
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", Btn1, "str", "DarkMode_Explorer", "ptr", 0)
-    
-    Gui,searchbox: Add, Button,x+0 y0 g常用路径 HwndBtn2,常用
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", Btn2, "str", "DarkMode_Explorer", "ptr", 0)
-    
-    Gui,searchbox: Add, Button,x+0 y0 g历史打开 HwndBtn3,历史
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", Btn3, "str", "DarkMode_Explorer", "ptr", 0)
-    
-    Gui,searchbox: Add, Button,x+0 y0 g全部目录路径 HwndBtn4,全部
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", Btn4, "str", "DarkMode_Explorer", "ptr", 0)
+    Gui,searchbox: Add, Text,x-7 y0,% " "
+    if (自定义_当前打开 !="0")
+        Gui,searchbox: Add, Button,x+0 y0 g当前打开 HwndBtn1,%自定义_当前打开_文本%
 
-    if (DO的收藏夹="开启") and (获取到的do收藏夹路径 !="") {
-        Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹 HwndBtn5,dopus
-        if (系统深色模式状态)
-            DllCall("uxtheme\SetWindowTheme", "ptr", Btn5, "str", "DarkMode_Explorer", "ptr", 0)
+    if (自定义_常用路径 !="0"){
+        Gui,searchbox: Add, Button,x+0 y0 g常用路径 HwndBtn2,%自定义_常用路径_文本%
+        Loop, 5
+        {
+            if (常用路径开关%A_Index%="1" and 常用路径%A_Index%!="" and 常用路径名称%A_Index%!=""){
+                常用路径名称:= 常用路径名称%A_Index%
+                Gui,searchbox: Add, Button,x+0 y0 g常用路径%A_Index% Hwndbtn常%A_Index%,%常用路径名称%
+            }
+        }
     }
+    if (自定义_历史打开 !="0")
+        Gui,searchbox: Add, Button,x+0 y0 g历史打开 HwndBtn3,%自定义_历史打开_文本%
 
-    Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴 HwndBtn6,粘贴
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", Btn6, "str", "DarkMode_Explorer", "ptr", 0)
-    
-    Gui,searchbox: Add, Button,x+0 y0 g更多功能设置 HwndBtn7,更多
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", Btn7, "str", "DarkMode_Explorer", "ptr", 0)
+    if (自定义_全部路径 !="0")
+        Gui,searchbox: Add, Button,x+0 y0 g全部目录路径 HwndBtn4,%自定义_全部路径_文本%
+
+    if (DO的收藏夹="开启") and (获取到的do收藏夹路径 !="") and (自定义_do收藏夹 !="0")
+        Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹 HwndBtn5,%自定义_do收藏夹_文本%
+
+    if (自定义_粘贴 !="0")
+        Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴 HwndBtn6,%自定义_粘贴_文本%
+
+    if (自定义_更多 !="0")
+        Gui,searchbox: Add, Button,x+0 y0 g更多功能设置 HwndBtn7,%自定义_更多_文本%
 
     Gui,searchbox: Font,s%窗口字体大小%
     Gui,searchbox: Add, Edit, w200 x-2 y24 Hwnd搜索框ID v搜索框输入值, % ""
-    ; 根据系统主题设置编辑框主题
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", 搜索框ID, "str", "DarkMode_Explorer", "ptr", 0)
     EM_SETCUEBANNER(搜索框ID, "输入框")
 
     Gui,searchbox: Add, ListBox, w200 x-2 y+6 Hwnd文本框ID g文本框选择后执行的操作 v文本框选择值1, % ""
-    ; 根据系统主题设置列表框主题
-    if (系统深色模式状态)
-        DllCall("uxtheme\SetWindowTheme", "ptr", 文本框ID, "str", "DarkMode_Explorer", "ptr", 0)
     ; 设置行高为  像素
     SendMessage, 0x01A0, 0, 窗口文本行距, , ahk_id %文本框ID%  ; LB_SETITEMHEIGHT
 
-    ; 根据系统主题设置标题栏颜色（适用于Windows 10+）
-    if (A_OSVersion >= "10.0.17763" && SubStr(A_OSVersion, 1, 3) = "10.") {
-        attr := A_OSVersion >= "10.0.18985" ? 20 : 19
-        ; 根据系统深色模式状态设置标题栏颜色
-        darkTitlebar := 系统深色模式状态 ? 1 : 0
-        DllCall("dwmapi\DwmSetWindowAttribute", "ptr", Gui_winID, "int", attr, "int*", darkTitlebar, "int", 4)
-    }
+    ;深色/浅色主题切换2【开始】---------------------------------
+    if (IsDarkMode() and 深浅主题切换="跟随系统") or (深浅主题切换="深色"){
+        DllCall("uxtheme\SetWindowTheme", "ptr", 搜索框ID, "str", "DarkMode_Explorer", "ptr", 0)
+        DllCall("uxtheme\SetWindowTheme", "ptr", 文本框ID, "str", "DarkMode_Explorer", "ptr", 0)
+        Loop, 7
+        {
+            ; 根据系统主题设置标题栏颜色（适用于Windows 10+）
+            if (A_OSVersion >= "10.0.17763" && SubStr(A_OSVersion, 1, 3) = "10.") {
+                attr := A_OSVersion >= "10.0.18985" ? 20 : 19
+                DllCall("dwmapi\DwmSetWindowAttribute", "ptr", Gui_winID, "int", attr, "int*", 1, "int", 4)
+            }
+            DllCall("uxtheme\SetWindowTheme", "ptr", Btn%A_Index%, "str", "DarkMode_Explorer", "ptr", 0)
+            DllCall("uxtheme\SetWindowTheme", "ptr", Btn常%A_Index%, "str", "DarkMode_Explorer", "ptr", 0)
+        }
 
+    }
+    ;深色/浅色主题切换2【结束】---------------------------------
     Gui searchbox:+LastFound ; 让 GUI 窗口成为上次找到的窗口以用于下一行的命令.
 
     文本框内容写入 := Trim(文本框内容写入,"|")
@@ -341,12 +318,39 @@ Return
     GuiControl, , % 文本框ID, % "|" 实时Text
     GuiControl, Choose, % 文本框ID, 1
 Return
+
 常用路径:
     gosub,将所有内容路径加入到数组
     实时Text:= 换行符转换为竖杠(移除空白行(自定义常用路径))
     GuiControl, , % 文本框ID, % "|" 实时Text
     GuiControl, Choose, % 文本框ID, 1
 Return
+常用路径1:
+    实时Text:= 换行符转换为竖杠(移除空白行(常用路径1))
+    GuiControl, , % 文本框ID, % "|" 实时Text
+    GuiControl, Choose, % 文本框ID, 1
+Return
+常用路径2:
+    实时Text:= 换行符转换为竖杠(移除空白行(常用路径2))
+    GuiControl, , % 文本框ID, % "|" 实时Text
+    GuiControl, Choose, % 文本框ID, 1
+Return
+常用路径3:
+    实时Text:= 换行符转换为竖杠(移除空白行(常用路径3))
+    GuiControl, , % 文本框ID, % "|" 实时Text
+    GuiControl, Choose, % 文本框ID, 1
+Return
+常用路径4:
+    实时Text:= 换行符转换为竖杠(移除空白行(常用路径4))
+    GuiControl, , % 文本框ID, % "|" 实时Text
+    GuiControl, Choose, % 文本框ID, 1
+Return
+常用路径5:
+    实时Text:= 换行符转换为竖杠(移除空白行(常用路径5))
+    GuiControl, , % 文本框ID, % "|" 实时Text
+    GuiControl, Choose, % 文本框ID, 1
+Return
+
 历史打开:
     gosub,将所有内容路径加入到数组
     实时Text:= 换行符转换为竖杠(移除空白行(历史所有路径))
@@ -398,7 +402,7 @@ Return
 Return
 
 添加到常用:
-    IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
+    自定义常用路径2:=Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是")
     Gui searchbox: Submit, NoHide
 
     文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
@@ -410,7 +414,7 @@ Return
 Return
 
 从常用中移除:
-    IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
+    自定义常用路径2:=Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是")
     Gui searchbox: Submit, NoHide
     文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
 
@@ -420,18 +424,9 @@ Return
 Return
 
 更多功能设置:
-
-    IniRead, 自动跳转到默认路径,%软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
-    if (自动跳转到默认路径="" || 自动跳转到默认路径="ERROR")
-        自动跳转到默认路径:= "关闭"
-    IniRead, 历史路径设为默认路径, %软件安装路径%\个人配置.ini,基础配置,历史路径设为默认路径
-    if (历史路径设为默认路径="" || 历史路径设为默认路径="ERROR")
-        历史路径设为默认路径:= "关闭"
-
-    IniRead, 默认路径, %软件安装路径%\个人配置.ini,基础配置,默认路径
-    if (默认路径="ERROR")
-        默认路径:= ""
-    默认路径:=ReplaceVars(默认路径)
+    自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+    历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+    默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","是"))
 
     if (自动跳转到默认路径="关闭")
         Menu, searchbox, Add, 开启 自动跳默认路径, 开启自动跳默认路径
@@ -613,12 +608,8 @@ Return
                 Menu, searchbox2, Add, 直接复制粘贴,直接复制粘贴
                 Menu, searchbox2, Add, 打开路径, 打开路径
 
-                IniRead, 自动跳转到默认路径,%软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
-                if (自动跳转到默认路径="" || 自动跳转到默认路径="ERROR")
-                    自动跳转到默认路径:= "关闭"
-                IniRead, 历史路径设为默认路径, %软件安装路径%\个人配置.ini,基础配置,历史路径设为默认路径
-                if (历史路径设为默认路径="" || 历史路径设为默认路径="ERROR")
-                    历史路径设为默认路径:= "关闭"
+                自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+                历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
 
                 Menu, searchbox2, Add, 设为默认路径, 选中项设为默认路径
                 if (自动跳转到默认路径="关闭") or (自动跳转到默认路径="开启" and 历史路径设为默认路径="开启")
@@ -752,7 +743,6 @@ return
     资管所有路径:=""
     do所有路径:=""
     tc所有路径:=""
-    dc所有路径:=""
     xy所有路径:=""
     qdir所有路径:=""
     dc所有路径:=""
@@ -771,14 +761,16 @@ return
     if WinExist("ahk_class TTOTAL_CMD")
         tc所有路径:= TotalCommander_path("0")
 
-    if WinExist("ahk_exe doublecmd.exe")
-        dc所有路径:= DoubleCommander_path()
-
     xy所有路径:=XYplorer_Path()
     qdir所有路径:=Q_Dir_Path()
     dc所有路径:=DoubleCommander_path(给dc发送热键)
 
-    IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
+    自定义常用路径2:=Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是")
+    Loop, 5
+    {
+        自定义常用路径2 .= "`n" 常用路径%A_Index%
+    }
+
     自定义常用路径:=ReplaceVars(自定义常用路径2)
     自定义常用路径:=程序专属路径筛选(自定义常用路径)
     if (替换双斜杠单反斜杠双引号="开启"){
@@ -794,7 +786,6 @@ return
         资管所有路径 := 给行首加文件名(资管所有路径)
         do所有路径 := 给行首加文件名(do所有路径)
         tc所有路径 := 给行首加文件名(tc所有路径)
-        dc所有路径 := 给行首加文件名(dc所有路径)
         自定义常用路径 := 给行首加文件名(自定义常用路径)
         xy所有路径 := 给行首加文件名(xy所有路径)
         qdir所有路径 := 给行首加文件名(qdir所有路径)
@@ -918,13 +909,7 @@ return
 
 获取窗口信息:
 
-    IniRead, 屏蔽xiaoyao窗口列表, %软件安装路径%\个人配置.ini,窗口列表2
-    if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
-        屏蔽xiaoyao窗口列表:="
-(
-ahk_exe IDMan.exe
-)"
-    }
+    屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",软件安装路径 "\个人配置.ini","是")
 
     WinGetTitle, WinTitle22, ahk_id %参数2%
     WinGetClass, WinClass22, ahk_id %参数2%
@@ -982,10 +967,10 @@ return
 return
 
 导出日志:
-    IniRead, 未转化之前的坐标x, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标x
-    IniRead, 未转化之前的坐标y, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标y
-    IniRead, 窗口初始宽度, %软件安装路径%\个人配置.ini,基础配置,窗口初始宽度
-    IniRead, 窗口初始高度, %软件安装路径%\个人配置.ini,基础配置,窗口初始高度
+    未转化之前的坐标x:=Var_Read("窗口初始坐标x","","基础配置",软件安装路径 "\个人配置.ini","是")
+    未转化之前的坐标y:=Var_Read("窗口初始坐标y","","基础配置",软件安装路径 "\个人配置.ini","是")
+    窗口初始宽度:=Var_Read("窗口初始宽度","","基础配置",软件安装路径 "\个人配置.ini","是")
+    窗口初始高度:=Var_Read("窗口初始高度","","基础配置",软件安装路径 "\个人配置.ini","是")
 
     转化之后的坐标x:= Calculate(字符坐标替换(未转化之前的坐标x))
     转化之后的坐标y:= Calculate(字符坐标替换(未转化之前的坐标y))

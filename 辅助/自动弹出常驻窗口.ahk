@@ -1,6 +1,7 @@
 ﻿#SingleInstance,Force ;~运行替换旧实例
 #NoTrayIcon ;~不显示托盘图标
 #Persistent ;;~让脚本持久运行
+#Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 SetWinDelay, -1 ;设置在每次执行窗口命令,使用 -1 表示无延时
@@ -10,26 +11,20 @@ SplitPath, A_ScriptDir, , parentDir
 global 软件安装路径:= parentDir
 SetTitleMatchMode, 2  ; 使用部分匹配窗口标题
 
-IniRead, 自动弹出常驻窗口, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口
-IniRead, 自动跳转到默认路径, %软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
-IniRead, 默认路径, %软件安装路径%\个人配置.ini,基础配置,默认路径
-默认路径:=ReplaceVars(默认路径)
-IniRead, 历史路径设为默认路径, %软件安装路径%\个人配置.ini,基础配置,历史路径
+自动弹出常驻窗口:=Var_Read("自动弹出常驻窗口","开启","基础配置",软件安装路径 "\个人配置.ini","是")
+自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","是"))
+历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+屏蔽xiaoyao程序列表:=Var_Read("屏蔽xiaoyao程序列表","War3.exe,dota2.exe,League of Legends.exe","基础配置",软件安装路径 "\个人配置.ini","是")
 
-IniRead, 屏蔽xiaoyao程序列表,%软件安装路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
-    if (屏蔽xiaoyao程序列表="" || 屏蔽xiaoyao程序列表="ERROR")
-            屏蔽xiaoyao程序列表:="War3.exe,dota2.exe,League of Legends.exe"
-
-IniRead, 常驻窗口窗口列表,%软件安装路径%\个人配置.ini,窗口列表1
-if (常驻窗口窗口列表="" || 常驻窗口窗口列表="ERROR"){
-    常驻窗口窗口列表:="
+默认常驻窗口窗口列表:="
 (
 选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe
 选择 ahk_class #32770 ahk_exe Bandizip.exe
 解压路径和选项 ahk_class #32770 ahk_exe WinRAR.exe
 选择目标文件夹 ahk_class #32770 ahk_exe dopus.exe
 )"
-}
+常驻窗口窗口列表:=Var_Read("",默认常驻窗口窗口列表,"窗口列表1",软件安装路径 "\个人配置.ini","是")
 ;常驻窗口窗口列表:="选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe`n选择 ahk_class #32770 ahk_exe Bandizip.exe"
 ; 解析窗口列表到数组
 windows := []
@@ -40,13 +35,8 @@ Loop, Parse, 常驻窗口窗口列表, `n, `r
 }
 
 ;----------------黑名单窗列表读取-----------
-IniRead, 屏蔽xiaoyao窗口列表,%软件安装路径%\个人配置.ini,窗口列表2
-if (屏蔽xiaoyao窗口列表="" || 屏蔽xiaoyao窗口列表="ERROR"){
-    屏蔽xiaoyao窗口列表:="
-(
-ahk_exe IDMan.exe
-)"
-}
+屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",软件安装路径 "\个人配置.ini","是")
+
 ;常驻窗口窗口列表:="选择解压路径 ahk_class #32770 ahk_exe Bandizip.exe`n选择 ahk_class #32770 ahk_exe Bandizip.exe"
 ; 解析窗口列表到数组
 windows2 := []
@@ -61,10 +51,7 @@ Loop, Parse, 屏蔽xiaoyao程序列表, `,
         windows2.Push(Trim("ahk_exe " A_LoopField))
 }
 ;----------------黑名单窗列表读取-----------
-
-IniRead, 自动弹出常驻窗口次数, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口次数
-if (自动弹出常驻窗口次数="" || 自动弹出常驻窗口次数="ERROR")
-    自动弹出常驻窗口次数:= "0"
+自动弹出常驻窗口次数:=Var_Read("自动弹出常驻窗口次数","0","基础配置",软件安装路径 "\个人配置.ini","是")
 
 ;MsgBox, %自动弹出常驻窗口%
 if (自动弹出常驻窗口 != "开启") and (自动跳转到默认路径 != "开启")  ;如果配置文件中设置了关闭，则退出脚本
@@ -105,10 +92,9 @@ loop
 
         WinID2 := WinExist("A")
 
-        IniRead, 自动跳转到默认路径, %软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
-        IniRead, 默认路径, %软件安装路径%\个人配置.ini,基础配置,默认路径
-        默认路径:=ReplaceVars(默认路径)
-        IniRead, 历史路径设为默认路径, %软件安装路径%\个人配置.ini,基础配置,历史路径设为默认路径
+        自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
+        历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
+        默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","否"))
 
         if (自动跳转到默认路径 = "开启"){
 
@@ -167,27 +153,6 @@ loop
 }
 
 ;-------------------------------------------
-;只有在下列情况下，才将此对话框视为可能的文件对话框
-SmellsLikeAFileDialog(_thisID ){
-    WinGet, _controlList, ControlList, ahk_id %_thisID%
-    Loop, Parse, _controlList, `n
-    {
-        If ( A_LoopField = "SysListView321" )
-            _SysListView321 := 1
-        If ( A_LoopField = "ToolbarWindow321")
-            _ToolbarWindow321 := 1
-        If ( A_LoopField = "DirectUIHWND1" )
-            _DirectUIHWND1 := 1
-        If ( A_LoopField = "Edit1" )
-            _Edit1 := 1
-    }
-    If ( _DirectUIHWND1 and _ToolbarWindow321 and _Edit1 )
-        Return "GENERAL"
-    Else If ( _SysListView321 and _ToolbarWindow321 and _Edit1 )
-        Return "SYSLISTVIEW"
-    else
-        Return FALSE
-}
 
 ; 函数：检查文件中是否存在包含目标字符串的行
 ; 参数：
@@ -253,34 +218,6 @@ ReplaceBrowseForFolder(Params*) {
     }
 }
 
-;将字符串中的 %变量名% 替换为变量值----------------------------------------------------------------
-ReplaceVars(str) {
-    ; 创建新字符串避免修改原始数据
-    result := str
-
-    ; 使用更可靠的正则表达式匹配 %变量名%
-    pos := 1
-    While (pos := RegExMatch(result, "OiU)%([\w#@$]+)%", match, pos)) {
-        varName := match.Value(1)  ; 提取变量名
-
-        ; 检查是否是内置变量或全局变量
-        if IsLabel(varName) || (%varName% != "") {
-            varValue := %varName%  ; 获取变量值
-
-            ; 替换匹配部分
-            result := RegExReplace(result, "U)\Q" match.Value() "\E", varValue, , 1, pos)
-            pos += StrLen(varValue)  ; 调整位置
-        } else {
-            ; 如果不是有效变量，跳过
-            pos += match.Len
-        }
-    }
-
-    ; 处理转义的 %% 为 %
-    result := StrReplace(result, "``%``%", "``%")
-    return result
-}
-
 检查窗口列表:
     ;----------------黑名单窗口跳过-----------
     for index, winTitle2 in windows2
@@ -296,10 +233,9 @@ ReplaceVars(str) {
         ; 检查窗口是否存在
         if WinActive(winTitle){
             WinID2 := WinExist(winTitle)
-            IniRead, 自动跳转到默认路径, %软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
-            IniRead, 默认路径, %软件安装路径%\个人配置.ini,基础配置,默认路径
-            默认路径:=ReplaceVars(默认路径)
-            IniRead, 历史路径设为默认路径, %软件安装路径%\个人配置.ini,基础配置,历史路径设为默认路径
+            自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
+            历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
+            默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","否"))
 
             if (自动跳转到默认路径 = "开启"){
 
@@ -354,3 +290,6 @@ return
 ExitApp
 Return
 
+RemoveToolTip:
+    ToolTip
+return

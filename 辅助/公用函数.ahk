@@ -675,51 +675,6 @@ TotalCommander_path(指定栏:="1"){
     Return trim(tc路径, "`n")
 }
 
-;--------获取Double Commander路径---------------------------------------
-DoubleCommander_path() {
-    if WinExist("ahk_exe doublecmd.exe") {
-        ; 获取所有 doublecmd.exe 窗口
-        WinGet, dcWindows, List, ahk_exe doublecmd.exe
-        
-        Loop, %dcWindows% {
-            winId := dcWindows%A_Index%
-            WinGetClass, winClass, ahk_id %winId%
-            WinGetTitle, winTitle, ahk_id %winId%
-            if (winClass = "TTOTAL_CMD" && InStr(winTitle, "Double Commander")) {
-                ; 找到主窗口，保存其ID
-                dcMainWinId := winId
-                break
-            }
-        }
-        ; 向后台 Double Commander 主窗口发送 Ctrl+Shift+F12 快捷键
-        ControlSend, , ^+{F12}, ahk_id %dcMainWinId%
-
-        ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
-        Sleep, 500
-
-        ; 假设 Ctrl+Shift+F12 会生成包含路径的文件，读取该文件
-        ; 您需要根据实际的 Lua 脚本输出文件路径来修改这里
-        EnvGet, tempPath, TEMP
-        tempFile := tempPath . "\dc_tabs_output.txt"
-        
-        if FileExist(tempFile) {
-            FileEncoding, UTF-8
-            FileRead, dcTabPaths, %tempFile%
-            FileDelete, %tempFile%  ; 清理临时文件
-            ; MsgBox, %dcTabPaths%
-            return dcTabPaths
-        } else {
-            ; MsgBox, "tempFile 不存在"
-            ; 如果文件方法失败，回退到窗口标题方法
-            WinGetTitle, dcTitle, ahk_exe doublecmd.exe
-            if RegExMatch(dcTitle, "\(([A-Z]:\\.*?)[\\]?\)", match) {
-                dcPath := match1
-                return dcPath
-            }
-        }
-    }
-}
-
 ;-----------历史打开路径------------------------------------------------
 HistoryOpenPath(软件安装路径2:=""){
     folder汇总:=""
@@ -2065,3 +2020,60 @@ RunWaitWithTimeout(Command, TimeoutMs := 30000)
 
     }
 }
+
+;[读取配置]
+Var_Read(rValue,defVar:="",Section名:="基础配置",Config:="个人配置.ini",是否删除默认项:="是"){
+    IniRead, regVar,%Config%, %Section名%, %rValue%,% defVar ? defVar : A_Space
+
+    if(regVar!=""){
+        if(defVar!="" && regVar=defVar){
+            if (是否删除默认项 = "是")
+                IniDelete, %Config%, %Section名%, %rValue%
+            return defVar
+        }else
+            return regVar
+    }else{
+        if (是否删除默认项 = "是")
+            IniDelete, %Config%, %Section名%, %rValue%
+        return defVar
+    }
+}
+
+;[写入配置]
+Var_Set(vGui, var, sz,Section名:="基础配置",Config:="个人配置.ini"){
+	StringCaseSense, On
+	if(vGui!=var){
+		if(vGui=""){
+			IniDelete,%Config%,%Section名%, %sz%
+		}else{
+			IniWrite,%vGui%,%Config%, %Section名%, %sz%
+		}
+	}
+	StringCaseSense, Off
+}
+
+
+; 暗黑模式相关函数
+Menu_Dark(d) { ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
+  static uxtheme := DllCall("GetModuleHandle", "str", "uxtheme", "ptr")
+  static SetPreferredAppMode := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 135, "ptr")
+  static FlushMenuThemes := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 136, "ptr")
+
+  DllCall(SetPreferredAppMode, "int", d) ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
+  DllCall(FlushMenuThemes)
+}
+
+; 读取系统深色模式状态
+IsDarkMode() {
+    ; 注册表路径和值名称
+    static RegPath := "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+    static ValueName := "AppsUseLightTheme"
+
+    ; 读取注册表值
+    RegRead, AppsUseLightTheme, %RegPath%, %ValueName%
+
+    ; AppsUseLightTheme = 0 表示深色模式，1 表示浅色模式
+    return (AppsUseLightTheme = 0)
+}
+
+
