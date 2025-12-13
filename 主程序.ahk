@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.4.9.1"
+软件版本号:="4.5.0.1"
 
 ;判断是否管理员启动
 Gosub, Label_AdminLaunch
@@ -162,6 +162,11 @@ if (手动弹出计数="" || 手动弹出计数="ERROR")
 IniRead, 自动弹出菜单计数, %A_ScriptDir%\个人配置.ini,基础配置,自动弹出菜单计数
 if (自动弹出菜单计数="" || 自动弹出菜单计数="ERROR")
     自动弹出菜单计数:= "0"
+
+IniRead, 给dc发送热键, %A_ScriptDir%\个人配置.ini,基础配置,给dc发送热键
+if (给dc发送热键="" || 给dc发送热键="ERROR")
+    给dc发送热键:= "^+{F12}"
+
 OnExit, 退出时运行
 
 ;------------------ 读取配置终止线 ----------------
@@ -278,6 +283,7 @@ ShowMenu:
     TotalCommanderpath:=""
     xy所有路径:=XYplorer_Path()
     qdir所有路径:=Q_Dir_Path()
+    dc所有路径:=DoubleCommander_path(给dc发送热键)
 
     开头内容:="按shift复制 ctrl打开"
 
@@ -312,100 +318,22 @@ ShowMenu:
         $Exp := ""
     }
     ; ------------------ Total Commander ------------------
-    ; if·‌WinExist("ahk_class·‌TTOTAL_CMD"){
-    ; DoubleCommander ClassName 和 TotalCommander ClassName 重复了，都是 TTOTAL_CMD,因此改用 ahk_exe TOTALCMD64.EXE 判断
-    if WinExist("ahk_exe TOTALCMD64.EXE"){
-        TotalCommanderpath:=TotalCommander_path()
-        cm_CopySrcPathToClip := 2029
-        cm_CopyTrgPathToClip := 2030
-        ClipSaved := ClipboardAll
-        Clipboard := ""
-        SendMessage 1075, %cm_CopySrcPathToClip%, 0, , ahk_class TTOTAL_CMD
-        If (ErrorLevel = 0) {
-            Menu ContextMenu, Add, %clipboard%, Choice
+    SetTitleMatchMode RegEx
+    if WinExist("ahk_exe i)totalcmd.*\.exe"){
+        TotalCommanderpath:=TotalCommander_path("1")
+        If (TotalCommanderpath != "") {
+            Menu ContextMenu, Add, %TotalCommanderpath%, Choice
             if (是否加载图标 !="关闭")
-                Menu ContextMenu, Icon, %clipboard%, ICO/Totalcmd.ico
+                Menu ContextMenu, Icon, %TotalCommanderpath%, ICO/Totalcmd.ico
         }
-        SendMessage 1075, %cm_CopyTrgPathToClip%, 0, , ahk_class TTOTAL_CMD
-        If (ErrorLevel = 0) {
-            Menu ContextMenu, Add, %clipboard%, Choice
+        TotalCommanderpath2:=TotalCommander_path("2")
+        If (TotalCommanderpath2 != "") {
+            Menu ContextMenu, Add, %TotalCommanderpath2%, Choice
             if (是否加载图标 !="关闭")
-                Menu ContextMenu, Icon, %clipboard%, ICO/Totalcmd.ico
-        }
-        Clipboard := ClipSaved
-        ClipSaved := ""
+                Menu ContextMenu, Icon, %TotalCommanderpath2%, ICO/Totalcmd.ico
+        }        
     }
-
-    
-    ; ------------------ Double Commander------------------
-    if WinExist("ahk_exe doublecmd.exe") {
-        ; 获取所有 doublecmd.exe 窗口
-        WinGet, dcWindows, List, ahk_exe doublecmd.exe
-        
-        Loop, %dcWindows% {
-            winId := dcWindows%A_Index%
-            WinGetClass, winClass, ahk_id %winId%
-            WinGetTitle, winTitle, ahk_id %winId%
-            if (winClass = "TTOTAL_CMD" && InStr(winTitle, "Double Commander")) {
-                ; 找到主窗口，保存其ID
-                dcMainWinId := winId
-                break
-            }
-        }
-        ; 向后台 Double Commander 主窗口发送 Ctrl+Shift+F12 快捷键
-        ControlSend, , ^+{F12}, ahk_id %dcMainWinId%
-        ; 等待操作完成（根据您的 Lua 脚本执行时间调整）
-        Sleep, 500
-        
-        ; 假设 Ctrl+Shift+F12 会生成包含路径的文件，读取该文件
-        ; 您需要根据实际的 Lua 脚本输出文件路径来修改这里
-        EnvGet, tempPath, TEMP
-        tempFile := tempPath . "\dc_tabs_output.txt"
-        
-        if FileExist(tempFile) {
-            FileEncoding, UTF-8
-            FileRead, dcTabPaths, %tempFile%
-            FileDelete, %tempFile%  ; 清理临时文件
-            ; MsgBox, %dcTabPaths%
-            ; 将路径添加到菜单
-            Loop, Parse, dcTabPaths, `n, `r
-            {
-                path := Trim(A_LoopField)
-                path := RegExReplace(path, "\\+$", "")
-                if (path != "") {
-                    Menu, ContextMenu, Add, %path%, Choice
-                    if (是否加载图标 != "关闭")
-                        Menu, ContextMenu, Icon, %path%, ICO/doublecmd.ico
-                    
-                    ; 存储完整路径供后续使用
-                    DC_Paths[path] := path
-                }
-            }
-            
-            ; 添加分隔线（如果有路径被添加）
-            if (dcTabPaths != "")
-                Menu, ContextMenu, Add
-        } else {
-            ; MsgBox, "tempFile 不存在"
-            ; 如果文件方法失败，回退到窗口标题方法
-            WinGetTitle, dcTitle, ahk_exe doublecmd.exe
-            if RegExMatch(dcTitle, "\(([A-Z]:\\.*?)[\\]?\)", match) {
-                dcPath := match1
-                if (dcPath != "" && FileExist(dcPath)) {
-                    SplitPath, dcPath, , , , nameNoExt
-                    displayName := nameNoExt ? nameNoExt : dcPath
-                    
-                    Menu, ContextMenu, Add, %displayName%, Choice
-                    if (是否加载图标 != "关闭")
-                        Menu, ContextMenu, Icon, %displayName%, ICO/doublecmd.ico
-                    
-                    Menu, ContextMenu, Add
-                }
-            }
-        }
-    }
-
-
+    SetTitleMatchMode 1
     ; ------------------ XYplorer ------------------
     Loop, parse, xy所有路径, `n, `r
     {
@@ -420,6 +348,14 @@ ShowMenu:
         Menu ContextMenu, Add, %A_LoopField%, Choice
         if (是否加载图标 !="关闭")
             Menu ContextMenu, Icon, %A_LoopField%, ICO/Q-Dir.ico
+    }
+
+    ; ------------------ DoubleCommander ------------------
+    Loop, parse, dc所有路径, `n, `r
+    {
+        Menu ContextMenu, Add, %A_LoopField%, Choice
+        if (是否加载图标 !="关闭")
+            Menu ContextMenu, Icon, %A_LoopField%, ICO/DoubleCommander.ico
     }
 
     ; ------------------ Directory Opus ------------------
@@ -500,7 +436,7 @@ ShowMenu:
         }
     }
     ; ------------------ do收藏夹 ------------------
-    if (DO的收藏夹="开启"){
+    if (DO的收藏夹="开启") and (do收藏夹所有路径 !=""){
 
         Menu, do收藏夹, Add,部分收藏夹需先运行do, Choice
         Menu, do收藏夹, Disable,部分收藏夹需先运行do
@@ -666,7 +602,7 @@ return
     手动弹出计数++
     $WinID := WinExist("A")
     ;MsgBox,1
-    Firstpath:=Trim(Explorer_Path() "`n" DirectoryOpus_path("Clipboard SET {sourcepath}") "`n" TotalCommander_path() "`n" XYplorer_Path("1"),"`n")
+    Firstpath:=Trim(Explorer_Path() "`n" DirectoryOpus_path("Clipboard SET {sourcepath}") "`n" TotalCommander_path() "`n" XYplorer_Path("1") "`n" DoubleCommander_path(给dc发送热键),"`n")
     ;expath:=Explorer_Path()
     ;dopath:=Trim(DirectoryOpus_path("Clipboard SET {sourcepath}"))
     ;tcpath:=TotalCommander_path()

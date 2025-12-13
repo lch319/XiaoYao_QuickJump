@@ -3,6 +3,36 @@
 #NoTrayIcon ;~不显示托盘图标
 #Persistent ;;~让脚本持久运行
 #Include %A_ScriptDir%\公用函数.ahk
+       
+; 暗黑模式相关函数
+Menu_Dark(d) { ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
+  static uxtheme := DllCall("GetModuleHandle", "str", "uxtheme", "ptr")
+  static SetPreferredAppMode := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 135, "ptr")
+  static FlushMenuThemes := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 136, "ptr")
+
+  DllCall(SetPreferredAppMode, "int", d) ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
+  DllCall(FlushMenuThemes)
+}
+
+; 读取系统深色模式状态
+IsDarkMode() {
+    ; 注册表路径和值名称
+    static RegPath := "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+    static ValueName := "AppsUseLightTheme"
+    
+    ; 读取注册表值
+    RegRead, AppsUseLightTheme, %RegPath%, %ValueName%
+    
+    ; AppsUseLightTheme = 0 表示深色模式，1 表示浅色模式
+    return (AppsUseLightTheme = 0)
+}
+
+; 根据系统主题自动设置模式
+global 系统深色模式状态 := IsDarkMode()
+if (系统深色模式状态)
+    Menu_Dark(2) ; 启用暗黑模式
+else
+    Menu_Dark(3) ; 启用浅色模式
 
 SetWinDelay, -1 ;设置在每次执行窗口命令,使用 -1 表示无延时
 SetBatchLines, -1   ;让操作以最快速度进行.
@@ -91,6 +121,10 @@ if (参数1="-常驻窗口跟随"){
         IniRead, 初始文本框内容, %软件安装路径%\个人配置.ini,基础配置,初始文本框内容
         IniRead, 失效路径显示设置, %软件安装路径%\个人配置.ini,基础配置,失效路径显示设置
 
+        IniRead, 给dc发送热键, %软件安装路径%\个人配置.ini,基础配置,给dc发送热键
+        if (给dc发送热键="" || 给dc发送热键="ERROR")
+            给dc发送热键:= "^+{F12}"
+
         IniRead, 窗口文本行距, %软件安装路径%\个人配置.ini,基础配置,窗口文本行距
         if (窗口文本行距="" || 窗口文本行距="ERROR")
             窗口文本行距:= "20"
@@ -121,7 +155,7 @@ ahk_exe IDMan.exe
     }Else if (初始文本框内容="do收藏夹"){
         global 文本框内容写入:= 换行符转换为竖杠(移除空白行(获取到的do收藏夹路径))
     }Else{
-        global 文本框内容写入:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" dc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
+        global 文本框内容写入:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径 "`n" dc所有路径,"`n"))))
         if (文本框内容写入="")
             global 文本框内容写入:= 换行符转换为竖杠(移除空白行(自定义常用路径))
     }
@@ -148,12 +182,12 @@ ExitApp
 Return
 ;[显示窗口]-------------------------------------
 显示常驻搜索窗口:
-
     if WinExist(窗口标题名称 " ahk_class AutoHotkeyGUI"){
         ;MsgBox, 已存在常驻搜索窗口,请先关闭后再打开
         ExitApp
         Return
     }
+
     Gui,searchbox:Destroy
     global Gui_winID
     ;Gui,searchbox: +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
@@ -161,27 +195,75 @@ Return
     ;Clipboard:= Gui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
+    ; 根据系统主题动态设置窗口背景和字体颜色
+    if (窗口背景颜色="") {
+        if (系统深色模式状态)
+            窗口背景颜色 := "0x202020" ; 深色背景
+        else
+            窗口背景颜色 := "0xF0F0F0" ; 浅色背景
+    }
+    if (窗口字体颜色="") {
+        if (系统深色模式状态)
+            窗口字体颜色 := "0xE0E0E0" ; 浅色字体
+        else
+            窗口字体颜色 := "0x202020" ; 深色字体
+    }
+    
     Gui,searchbox: Color,%窗口背景颜色%,%窗口背景颜色%
     Gui,searchbox: Font,c%窗口字体颜色%,%窗口字体名称%
 
-    Gui,searchbox: Add, Button,x-2 y0 g当前打开,当前
-    Gui,searchbox: Add, Button,x+0 y0 g常用路径,常用
-    Gui,searchbox: Add, Button,x+0 y0 g历史打开,历史
-    Gui,searchbox: Add, Button,x+0 y0 g全部目录路径,全部
+    ; 添加按钮并根据系统主题设置样式
+    Gui,searchbox: Add, Button,x-2 y0 g当前打开 HwndBtn1,当前
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn1, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g常用路径 HwndBtn2,常用
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn2, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g历史打开 HwndBtn3,历史
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn3, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g全部目录路径 HwndBtn4,全部
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn4, "str", "DarkMode_Explorer", "ptr", 0)
 
-    if (DO的收藏夹="开启")
-        Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹,dopus
+    if (DO的收藏夹="开启") and (获取到的do收藏夹路径 !="") {
+        Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹 HwndBtn5,dopus
+        if (系统深色模式状态)
+            DllCall("uxtheme\SetWindowTheme", "ptr", Btn5, "str", "DarkMode_Explorer", "ptr", 0)
+    }
 
-    Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴,粘贴
-    Gui,searchbox: Add, Button,x+0 y0 g更多功能设置,更多
+    Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴 HwndBtn6,粘贴
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn6, "str", "DarkMode_Explorer", "ptr", 0)
+    
+    Gui,searchbox: Add, Button,x+0 y0 g更多功能设置 HwndBtn7,更多
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", Btn7, "str", "DarkMode_Explorer", "ptr", 0)
 
     Gui,searchbox: Font,s%窗口字体大小%
     Gui,searchbox: Add, Edit, w200 x-2 y24 Hwnd搜索框ID v搜索框输入值, % ""
+    ; 根据系统主题设置编辑框主题
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", 搜索框ID, "str", "DarkMode_Explorer", "ptr", 0)
     EM_SETCUEBANNER(搜索框ID, "输入框")
 
     Gui,searchbox: Add, ListBox, w200 x-2 y+6 Hwnd文本框ID g文本框选择后执行的操作 v文本框选择值1, % ""
+    ; 根据系统主题设置列表框主题
+    if (系统深色模式状态)
+        DllCall("uxtheme\SetWindowTheme", "ptr", 文本框ID, "str", "DarkMode_Explorer", "ptr", 0)
     ; 设置行高为  像素
     SendMessage, 0x01A0, 0, 窗口文本行距, , ahk_id %文本框ID%  ; LB_SETITEMHEIGHT
+
+    ; 根据系统主题设置标题栏颜色（适用于Windows 10+）
+    if (A_OSVersion >= "10.0.17763" && SubStr(A_OSVersion, 1, 3) = "10.") {
+        attr := A_OSVersion >= "10.0.18985" ? 20 : 19
+        ; 根据系统深色模式状态设置标题栏颜色
+        darkTitlebar := 系统深色模式状态 ? 1 : 0
+        DllCall("dwmapi\DwmSetWindowAttribute", "ptr", Gui_winID, "int", attr, "int*", darkTitlebar, "int", 4)
+    }
 
     Gui searchbox:+LastFound ; 让 GUI 窗口成为上次找到的窗口以用于下一行的命令.
 
@@ -189,6 +271,7 @@ Return
     GuiControl, , % 文本框ID, % "|" 文本框内容写入
     GuiControl, Choose, % 文本框ID, 1
 
+    ;MsgBox,% 字符坐标替换(窗口初始坐标x)
     窗口初始坐标x:= Calculate(字符坐标替换(窗口初始坐标x))
     窗口初始坐标y:= Calculate(字符坐标替换(窗口初始坐标y))
     窗口初始宽度:= Calculate(字符坐标替换(窗口初始宽度))
@@ -202,11 +285,13 @@ Return
         窗口初始坐标y:=鼠标位置Y
     }
 
+    SysGet, VirtualWidth, 78
+    SysGet, VirtualHeight, 79
     ;坐标保护防止显示在屏幕外面
-    if  (A_ScreenWidth < (窗口初始坐标x + 窗口初始宽度))
-        窗口初始坐标x:= A_ScreenWidth - 窗口初始宽度
-    if  (A_ScreenHeight < (窗口初始坐标y + 窗口初始高度))
-        窗口初始坐标y:= A_ScreenHeight - 窗口初始高度
+    if  (VirtualWidth < (窗口初始坐标x + 窗口初始宽度))
+        窗口初始坐标x:= VirtualWidth - 窗口初始宽度 - 5
+    if  (VirtualHeight < (窗口初始坐标y + 窗口初始高度))
+        窗口初始坐标y:= VirtualHeight - 窗口初始高度
 
     Gui,searchbox: Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
     SetTimer, ExitScript, Off   ;关闭5秒后的退出操作
@@ -252,7 +337,7 @@ Return
 ;[窗口各个按钮功能直达]-------------------------------------
 当前打开:
     gosub,将所有内容路径加入到数组
-    实时Text:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" dc所有路径 "`n" xy所有路径 "`n" qdir所有路径,"`n"))))
+    实时Text:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径 "`n" dc所有路径,"`n"))))
     GuiControl, , % 文本框ID, % "|" 实时Text
     GuiControl, Choose, % 文本框ID, 1
 Return
@@ -392,6 +477,7 @@ Return
     Menu, searchbox, Add, 在该程序中禁用xiaoyao, 在该程序中禁用xiaoyao
 
     Menu, searchbox, Add
+    Menu, searchbox, Add, 导出日志, 导出日志
     Menu, searchbox, Add, 设置(&D), 设置可视化
     Menu, searchbox, Add, 重启(&R), Menu_Reload
     Menu, searchbox, Add, 退出(&E), Menu_Exit
@@ -669,6 +755,7 @@ return
     dc所有路径:=""
     xy所有路径:=""
     qdir所有路径:=""
+    dc所有路径:=""
 
     global 历史所有路径:= HistoryOpenPath(软件安装路径)
     if (失效路径显示设置 ="关闭")
@@ -681,25 +768,25 @@ return
     if WinExist("ahk_exe dopus.exe")
         do所有路径:=RTrim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" RTrim(DirectoryOpus_path("Clipboard SET {destpath}"),"\") "`n" DirectoryOpusgetinfo()
 
-    if WinExist("ahk_exe TOTALCMD64.EXE")
-        tc所有路径:= TotalCommander_path("1") "`n" TotalCommander_path("2")
+    if WinExist("ahk_class TTOTAL_CMD")
+        tc所有路径:= TotalCommander_path("0")
 
     if WinExist("ahk_exe doublecmd.exe")
         dc所有路径:= DoubleCommander_path()
 
     xy所有路径:=XYplorer_Path()
     qdir所有路径:=Q_Dir_Path()
+    dc所有路径:=DoubleCommander_path(给dc发送热键)
 
     IniRead, 自定义常用路径2, %软件安装路径%\个人配置.ini,常用路径
     自定义常用路径:=ReplaceVars(自定义常用路径2)
     自定义常用路径:=程序专属路径筛选(自定义常用路径)
-        if (替换双斜杠单反斜杠双引号="开启"){
+    if (替换双斜杠单反斜杠双引号="开启"){
         自定义常用路径:=RegExReplace(StrReplace(自定义常用路径, """", ""), "\\\\|/", "\")
     }
-    
+
     if (失效路径显示设置 ="关闭")
         自定义常用路径:= FilterExistingPaths(自定义常用路径)
-
 
     常用所有路径:= 自定义常用路径
 
@@ -711,6 +798,7 @@ return
         自定义常用路径 := 给行首加文件名(自定义常用路径)
         xy所有路径 := 给行首加文件名(xy所有路径)
         qdir所有路径 := 给行首加文件名(qdir所有路径)
+        dc所有路径 := 给行首加文件名(dc所有路径)
         历史所有路径 := 给行首加文件名(历史所有路径)
     }
 return
@@ -727,7 +815,7 @@ return
         获取到的do收藏夹路径 := 给行首加文件名(获取到的do收藏夹路径)
     }
 
-    合并所有路径:= Trim(资管所有路径, "`n") "`n" Trim(do所有路径, "`n") "`n" Trim(tc所有路径, "`n") "`n" Trim(dc所有路径, "`n") "`n" Trim(获取到的do收藏夹路径, "`n") "`n" Trim(常用所有路径, "`n") "`n" Trim(历史所有路径, "`n") "`n" Trim(xy所有路径, "`n") "`n" Trim(qdir所有路径, "`n")
+    合并所有路径:= Trim(资管所有路径, "`n") "`n" Trim(do所有路径, "`n") "`n" Trim(tc所有路径, "`n") "`n" Trim(获取到的do收藏夹路径, "`n") "`n" Trim(常用所有路径, "`n") "`n" Trim(历史所有路径, "`n") "`n" Trim(xy所有路径, "`n") "`n" Trim(qdir所有路径, "`n") "`n" Trim(dc所有路径, "`n")
     合并所有路径:=RemoveDuplicateLines(合并所有路径)    ;移除重复内容
 
     global 所有路径合集:= []
@@ -892,3 +980,50 @@ return
     run,"%软件安装路径%\XiaoYao_快速跳转.exe" "%软件安装路径%\主程序.ahk"
 ;MsgBox, %NewList2%
 return
+
+导出日志:
+    IniRead, 未转化之前的坐标x, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标x
+    IniRead, 未转化之前的坐标y, %软件安装路径%\个人配置.ini,基础配置,窗口初始坐标y
+    IniRead, 窗口初始宽度, %软件安装路径%\个人配置.ini,基础配置,窗口初始宽度
+    IniRead, 窗口初始高度, %软件安装路径%\个人配置.ini,基础配置,窗口初始高度
+
+    转化之后的坐标x:= Calculate(字符坐标替换(未转化之前的坐标x))
+    转化之后的坐标y:= Calculate(字符坐标替换(未转化之前的坐标y))
+
+    SysGet, VirtualWidth, 78
+    SysGet, VirtualHeight, 79
+    ;坐标保护防止显示在屏幕外面
+    转化之后的坐标x2:= 转化之后的坐标x
+    转化之后的坐标y2:= 转化之后的坐标y
+    if  (VirtualWidth < (转化之后的坐标x + 窗口初始宽度))
+        转化之后的坐标x2:= VirtualWidth - 窗口初始宽度
+    if  (VirtualHeight < (转化之后的坐标y + 窗口初始高度))
+        转化之后的坐标y2:= VirtualHeight - 窗口初始高度
+
+    常驻窗口的相关坐标信息:="未转化之前的坐标x：" 未转化之前的坐标x "`n未转化之前的坐标y：" 未转化之前的坐标y "`n转化之后的坐标x：" 转化之后的坐标x "`n转化之后的坐标y：" 转化之后的坐标y "`n屏幕保护后的坐标x2：" 转化之后的坐标x2 "`n屏幕保护后的坐标y2：" 转化之后的坐标y2
+
+    SysGet, MonitorCount, MonitorCount
+    SysGet, MonitorPrimary, MonitorPrimary
+    ;MsgBox, 显示器的数量‌:`t%MonitorCount%`n主显示器:`t%MonitorPrimary%
+    显示屏信息:=""
+    Loop, %MonitorCount%
+    {
+        SysGet, MonitorName, MonitorName, %A_Index%
+        SysGet, Monitor, Monitor, %A_Index%
+        SysGet, MonitorWorkArea, MonitorWorkArea, %A_Index%
+        显示屏信息 .="显示屏:`t#" A_Index "`n名称:`t" MonitorName "`n左边:`t" MonitorLeft " (" MonitorWorkAreaLeft " work)`n上边:`t" MonitorTop " (" MonitorWorkAreaTop " work)`n右边:`t" MonitorRight " (" MonitorWorkAreaRight " work)`n下边:`t" MonitorBottom " (" MonitorWorkAreaBottom " work)`n"
+        ;MsgBox, 显示屏:`t#%A_Index%`n名称:`t%MonitorName%`n左边:`t%MonitorLeft% (%MonitorWorkAreaLeft% work)`n上边:`t%MonitorTop% (%MonitorWorkAreaTop% work)`n右边:`t%MonitorRight% (%MonitorWorkAreaRight% work)`n下边:`t%MonitorBottom% (%MonitorWorkAreaBottom% work)
+    }
+
+    显示器的信息:= "显示器数量: " MonitorCount "`n主显示器: " MonitorPrimary "`n`n显示屏信息:`n" 显示屏信息
+
+    WinGetPos, 活动窗口X, 活动窗口Y, 活动窗口W, 活动窗口H, ahk_id %唯一性%
+    WinGetPos, 常驻窗口X2, 常驻窗口Y2, 常驻窗口W2, 常驻窗口H2, %窗口标题名称%
+
+    父窗口的信息:= "活动窗口：X: " 活动窗口X "  Y: " 活动窗口Y "  W: " 活动窗口W "  H: " 活动窗口H
+    常驻窗口的信息:= "常驻窗口：X2: " 常驻窗口X2 "  Y2: " 常驻窗口Y2 "  W2: " 常驻窗口W2 "  H2: " 常驻窗口H2
+
+    ;MsgBox, % 常驻窗口的相关坐标信息 "`n`n" 父窗口的信息 "`n" 常驻窗口的信息 "`n`n" 显示器的信息
+    ttip("已导出日志到软件安装路径下",3000)
+    FileAppend,% "窗口边界信息：" VirtualWidth " " VirtualHeight "`n`n" 常驻窗口的相关坐标信息 "`n`n" 父窗口的信息 "`n" 常驻窗口的信息 "`n`n" 显示器的信息,%软件安装路径%\导出日志%A_Now%.txt
+Return

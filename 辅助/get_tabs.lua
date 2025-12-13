@@ -1,4 +1,4 @@
-local tmp = os.tmpname()
+﻿local tmp = os.tmpname()
 
 local success, result = pcall(function()
     return DC.ExecuteCommand("cm_SaveTabs", "filename=" .. tmp, "savedirhistory=0")
