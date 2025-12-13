@@ -45,11 +45,20 @@
 ![手动添加窗口动态图](https://github.com/lch319/cangku1/blob/master/%E6%89%8B%E5%8A%A8%E6%B7%BB%E5%8A%A0%E7%AA%97%E5%8F%A3.gif?raw=true)
 
 - **专属常用路径**：仅在指定程序才显示的常用路径，达到不同程序显示不同路径的目的
-  
+
+  ![专属路径](https://github.com/user-attachments/assets/a5b439bc-0575-469b-8017-362d7d5c5da6)
+
 
 - **支持深色主题**：可设置跟随系统自动切换
+
 <img width="1163" height="590" alt="暗色主题" src="https://github.com/user-attachments/assets/824a2783-a6f9-4662-855d-46277a9a64cf" />
 
+###  使用说明
+
+**在Double Commander中的设置步骤**：
+		1.进入【配置】-【选项】-【工具栏】，点击“插入新的按钮”
+		2.命令选择 cm_ExecuteScript，参数填写 get_tabs.lua 的完整路径（例如 D:\XiaoYao_快速跳转\辅助\get_tabs.lua），热键可设置为 Ctrl+Shift+F12
+		3.在【配置】-【选项】-【杂项】中，勾选“在主窗口标题栏中显示当前目录”
 
 # 致谢 (灵感与参考)：
 
