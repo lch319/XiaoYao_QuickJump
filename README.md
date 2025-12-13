@@ -44,6 +44,13 @@
 
 ![手动添加窗口动态图](https://github.com/lch319/cangku1/blob/master/%E6%89%8B%E5%8A%A8%E6%B7%BB%E5%8A%A0%E7%AA%97%E5%8F%A3.gif?raw=true)
 
+- **专属常用路径**：仅在指定程序才显示的常用路径，达到不同程序显示不同路径的目的
+  
+
+- **支持深色主题**：可设置跟随系统自动切换
+<img width="1163" height="590" alt="暗色主题" src="https://github.com/user-attachments/assets/824a2783-a6f9-4662-855d-46277a9a64cf" />
+
+
 # 致谢 (灵感与参考)：
 
 本工具的开发借鉴或使用了以下优秀项目的思路和代码，在此深表感谢：
