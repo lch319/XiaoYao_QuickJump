@@ -53,9 +53,10 @@
 
 <img width="1163" height="590" alt="暗色主题" src="https://github.com/user-attachments/assets/824a2783-a6f9-4662-855d-46277a9a64cf" />
 
-###  使用说明
+###  更多使用说明
 
 **在Double Commander中的设置步骤**：
+
 		1.进入【配置】-【选项】-【工具栏】，点击“插入新的按钮”
 		2.命令选择 cm_ExecuteScript，参数填写 get_tabs.lua 的完整路径（例如 D:\XiaoYao_快速跳转\辅助\get_tabs.lua），热键可设置为 Ctrl+Shift+F12
 		3.在【配置】-【选项】-【杂项】中，勾选“在主窗口标题栏中显示当前目录”
