@@ -24,6 +24,8 @@ loop 5
 }
 
 Gui,+HwndGui_winID2
+FileAppend,%Gui_winID2%`n,%A_Temp%\后台隐藏运行脚本记录.txt
+
 Gui, Margin, 20, 20
 Gui, Font, W400, Microsoft YaHei
 

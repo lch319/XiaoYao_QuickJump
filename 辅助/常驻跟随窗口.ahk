@@ -18,7 +18,6 @@ global 参数4 := A_Args[4]
 
 ;功能一:
 if (参数1="-常驻窗口跟随"){
-
     DetectHiddenWindows, off
     if !WinExist("ahk_id " 参数2) or (参数2="")
         ExitApp
@@ -61,6 +60,8 @@ if (参数1="-常驻窗口跟随"){
     ;SplitPath, parentDir, , parentDir2
     global 软件安装路径:= parentDir
     ;MsgBox, %软件安装路径%
+    if not FileExist(软件安装路径 "\个人配置.ini")
+        FileCopy,%软件安装路径%\ICO\默认.ini, %软件安装路径%\个人配置.ini
 
     if FileExist(软件安装路径 "\个人配置.ini"){
         ;自定义常用路径2:=ReplaceVars(Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是"))
@@ -69,8 +70,8 @@ if (参数1="-常驻窗口跟随"){
         跳转方式:=Var_Read("跳转方式","1","基础配置",软件安装路径 "\个人配置.ini","是")
         历史跳转保留数:=Var_Read("历史跳转保留数","5","基础配置",软件安装路径 "\个人配置.ini","是")
         自动弹出常驻窗口:=Var_Read("自动弹出常驻窗口","开启","基础配置",软件安装路径 "\个人配置.ini","是")
-        窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X - 10 + 父窗口W","基础配置",软件安装路径 "\个人配置.ini","是")
-        窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 50","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X + 父窗口W","基础配置",软件安装路径 "\个人配置.ini","是")
+        窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 20","基础配置",软件安装路径 "\个人配置.ini","是")
         窗口初始宽度:=Var_Read("窗口初始宽度","300","基础配置",软件安装路径 "\个人配置.ini","是")
         窗口初始高度:=Var_Read("窗口初始高度","360","基础配置",软件安装路径 "\个人配置.ini","是")
         窗口背景颜色:=Var_Read("窗口背景颜色","","基础配置",软件安装路径 "\个人配置.ini","是")
@@ -78,7 +79,7 @@ if (参数1="-常驻窗口跟随"){
         窗口字体名称:=Var_Read("窗口字体名称","","基础配置",软件安装路径 "\个人配置.ini","是")
         窗口字体大小:=Var_Read("窗口字体大小","9","基础配置",软件安装路径 "\个人配置.ini","是")
         窗口透明度:=Var_Read("窗口透明度","225","基础配置",软件安装路径 "\个人配置.ini","是")
-        文件夹名显示在前:=Var_Read("文件夹名显示在前","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+        global 文件夹名显示在前:=Var_Read("文件夹名显示在前","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
         全局性菜单项功能:=Var_Read("全局性菜单项功能","复制到剪切板","基础配置",软件安装路径 "\个人配置.ini","是")
         初始文本框内容:=Var_Read("初始文本框内容","当前打开","基础配置",软件安装路径 "\个人配置.ini","是")
         失效路径显示设置:=Var_Read("失效路径显示设置","开启","基础配置",软件安装路径 "\个人配置.ini","是")
@@ -87,6 +88,7 @@ if (参数1="-常驻窗口跟随"){
         屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",软件安装路径 "\个人配置.ini","是")
         屏蔽xiaoyao程序列表:=Var_Read("屏蔽xiaoyao程序列表","War3.exe,dota2.exe,League of Legends.exe","基础配置",软件安装路径 "\个人配置.ini","是")
         深浅主题切换:=Var_Read("深浅主题切换","跟随系统","基础配置",软件安装路径 "\个人配置.ini","是")
+        自动弹出常驻窗口次数:=Var_Read("自动弹出常驻窗口次数","0","基础配置",软件安装路径 "\个人配置.ini","是")
 
         自定义_当前打开:=Var_Read("自定义_当前打开","1","基础配置",软件安装路径 "\个人配置.ini","是")
         自定义_常用路径:=Var_Read("自定义_常用路径","1","基础配置",软件安装路径 "\个人配置.ini","是")
@@ -104,6 +106,9 @@ if (参数1="-常驻窗口跟随"){
         自定义_粘贴_文本 :=Var_Read("自定义_粘贴_文本","粘贴","基础配置",软件安装路径 "\个人配置.ini","是")
         自定义_更多_文本 :=Var_Read("自定义_更多_文本","更多","基础配置",软件安装路径 "\个人配置.ini","是")
 
+        global 名称列最大宽度:=Var_Read("名称列最大宽度","200","基础配置",软件安装路径 "\个人配置.ini","是")
+        global 单击运行跳转:=Var_Read("单击运行跳转","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+
         loop 5
         {
             常用路径开关%A_Index%:= Var_Read("常用路径开关" A_Index,"0","基础配置",软件安装路径 "\个人配置.ini","是")
@@ -112,14 +117,38 @@ if (参数1="-常驻窗口跟随"){
                 常用路径%A_Index%:= 程序专属路径筛选(ReplaceVars(Var_Read("","","常用路径" A_Index,软件安装路径 "\个人配置.ini","是")))
                 if (替换双斜杠单反斜杠双引号="开启")
                     常用路径%A_Index%:=RegExReplace(StrReplace(常用路径%A_Index%, """", ""), "\\\\|/", "\")
-                    if (文件夹名显示在前="开启")
-                        常用路径%A_Index%:=给行首加文件名(常用路径%A_Index%)
             }Else{
                 常用路径名称%A_Index%:= ""
                 常用路径%A_Index%:=""
             }
         }
 
+    }
+    ;-----------------------------------------------------------------------------------
+    global ev排除列表:=Var_Read("ev排除列表","!C:\Windows* !?:\$RECYCLE.BIN* !?:\Users\*\AppData\Local\Temp\* !?:\Users\*\AppData\Roaming\*","基础配置",软件安装路径 "\个人配置.ini","是")
+    global 返回的最多结果次数:=Var_Read("返回的最多结果次数","150","基础配置",软件安装路径 "\个人配置.ini","是")
+    global 启用ev进行搜索:=Var_Read("启用ev进行搜索","开启","基础配置",软件安装路径 "\个人配置.ini","是")
+    global 搜索延迟:=Var_Read("搜索延迟","50","基础配置",软件安装路径 "\个人配置.ini","是")
+
+    if (启用ev进行搜索="开启"){
+        ;指定Everything.dll或Everything64.dll的路径
+        global evdll位置:= A_ScriptDir
+        global everyDLL
+        ;[检查当前运行Everything的位数]
+        if(FileExist(evdll位置 "\Everything.dll")){
+            everyDLL:=DllCall("LoadLibrary", str, "Everything.dll") ? "Everything.dll" : "Everything64.dll"
+        }else if(FileExist(evdll位置 "\Everything64.dll")){
+            everyDLL:=DllCall("LoadLibrary", str, "Everything64.dll") ? "Everything64.dll" : "Everything.dll"
+        }
+        ;Else{
+        ;MsgBox, 16, 错误, 未找到Everything.dll或Everything64.dll文件.`n请将其放置在脚本同目录下或指定路径中.
+        ;Return
+        ;}
+        ;最终确定DLL路径
+        global everyDLL:=evdll位置 "\" everyDLL
+
+        ;global ev排除列表:="!C:\Windows* !?:\$RECYCLE.BIN* !?:\Users\*\AppData\Local\Temp\* !?:\Users\*\AppData\Roaming\*"
+        ;global 返回的最多结果次数:="150"
     }
     ;-------------------------------------------------------------------
     gosub,将所有内容路径加入到数组2
@@ -146,6 +175,8 @@ if (参数1="-跳转事件"){
     global 跳转方式:="1"
     SplitPath, A_ScriptDir, , parentDir
     global 软件安装路径:= parentDir
+    if not FileExist(软件安装路径 "\个人配置.ini")
+        FileCopy,%软件安装路径%\ICO\默认.ini, %软件安装路径%\个人配置.ini
 
     if FileExist(软件安装路径 "\个人配置.ini"){
         跳转方式:=Var_Read("跳转方式","1","基础配置",软件安装路径 "\个人配置.ini","是")
@@ -167,7 +198,7 @@ Return
         Return
     }
 
-    Gui,searchbox:Destroy
+    Gui,Destroy
 
     ;深色/浅色主题切换1【开始】---------------------------------
     if (IsDarkMode() and 深浅主题切换="跟随系统") or (深浅主题切换="深色"){
@@ -180,50 +211,51 @@ Return
     ;深色/浅色主题切换1【结束】---------------------------------
 
     global Gui_winID
-    ;Gui,searchbox: +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
-    Gui,searchbox: +Resize +AlwaysOnTop +ToolWindow +E0x08000000 +HwndGui_winID
+    ;Gui, +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
+    Gui, +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
     ;Clipboard:= Gui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
-    Gui,searchbox: Color,%窗口背景颜色%,%窗口背景颜色%
-    Gui,searchbox: Font,c%窗口字体颜色%,%窗口字体名称%
+    Gui, Color,%窗口背景颜色%,%窗口背景颜色%
+    Gui, Font,c%窗口字体颜色%,%窗口字体名称%
 
-    Gui,searchbox: Add, Text,x-7 y0,% " "
+    Gui, Add, Text,x-7 y0,% " "
     if (自定义_当前打开 !="0")
-        Gui,searchbox: Add, Button,x+0 y0 g当前打开 HwndBtn1,%自定义_当前打开_文本%
+        Gui, Add, Button,x+0 y0 g当前打开 HwndBtn1,%自定义_当前打开_文本%
 
     if (自定义_常用路径 !="0"){
-        Gui,searchbox: Add, Button,x+0 y0 g常用路径 HwndBtn2,%自定义_常用路径_文本%
+        Gui, Add, Button,x+0 y0 g常用路径 HwndBtn2,%自定义_常用路径_文本%
         Loop, 5
         {
             if (常用路径开关%A_Index%="1" and 常用路径%A_Index%!="" and 常用路径名称%A_Index%!=""){
                 常用路径名称:= 常用路径名称%A_Index%
-                Gui,searchbox: Add, Button,x+0 y0 g常用路径%A_Index% Hwndbtn常%A_Index%,%常用路径名称%
+                Gui, Add, Button,x+0 y0 g常用路径%A_Index% Hwndbtn常%A_Index%,%常用路径名称%
             }
         }
     }
     if (自定义_历史打开 !="0")
-        Gui,searchbox: Add, Button,x+0 y0 g历史打开 HwndBtn3,%自定义_历史打开_文本%
+        Gui, Add, Button,x+0 y0 g历史打开 HwndBtn3,%自定义_历史打开_文本%
 
     if (自定义_全部路径 !="0")
-        Gui,searchbox: Add, Button,x+0 y0 g全部目录路径 HwndBtn4,%自定义_全部路径_文本%
+        Gui, Add, Button,x+0 y0 g全部目录路径 HwndBtn4,%自定义_全部路径_文本%
 
     if (DO的收藏夹="开启") and (获取到的do收藏夹路径 !="") and (自定义_do收藏夹 !="0")
-        Gui,searchbox: Add, Button,x+0 y0 gdo收藏夹 HwndBtn5,%自定义_do收藏夹_文本%
+        Gui, Add, Button,x+0 y0 gdo收藏夹 HwndBtn5,%自定义_do收藏夹_文本%
 
     if (自定义_粘贴 !="0")
-        Gui,searchbox: Add, Button,x+0 y0 g直接复制粘贴 HwndBtn6,%自定义_粘贴_文本%
+        Gui, Add, Button,x+0 y0 g直接复制粘贴 HwndBtn6,%自定义_粘贴_文本%
 
     if (自定义_更多 !="0")
-        Gui,searchbox: Add, Button,x+0 y0 g更多功能设置 HwndBtn7,%自定义_更多_文本%
+        Gui, Add, Button,x+0 y0 g更多功能设置 HwndBtn7,%自定义_更多_文本%
 
-    Gui,searchbox: Font,s%窗口字体大小%
-    Gui,searchbox: Add, Edit, w200 x-2 y24 Hwnd搜索框ID v搜索框输入值, % ""
+    Gui, Font,s%窗口字体大小%
+    Gui, Add, Edit, w200 x-2 Hwnd搜索框ID v搜索框输入值, % ""
     EM_SETCUEBANNER(搜索框ID, "输入框")
 
-    Gui,searchbox: Add, ListBox, w200 x-2 y+6 Hwnd文本框ID g文本框选择后执行的操作 v文本框选择值1, % ""
-    ; 设置行高为  像素
-    SendMessage, 0x01A0, 0, 窗口文本行距, , ahk_id %文本框ID%  ; LB_SETITEMHEIGHT
+    if (文件夹名显示在前 ="开启")
+        Gui, Add, ListView,w200 x-2 y+6 Hwnd文本框ID g文本框选择后执行的操作 v文本框选择值1 -Hdr -Multi +AltSubmit +HScroll, 名称|完整路径
+    Else
+        Gui, Add, ListView,w200 x-2 y+6 Hwnd文本框ID g文本框选择后执行的操作 v文本框选择值1 -Hdr -Multi +AltSubmit +HScroll, 完整路径
 
     ;深色/浅色主题切换2【开始】---------------------------------
     if (IsDarkMode() and 深浅主题切换="跟随系统") or (深浅主题切换="深色"){
@@ -242,11 +274,7 @@ Return
 
     }
     ;深色/浅色主题切换2【结束】---------------------------------
-    Gui searchbox:+LastFound ; 让 GUI 窗口成为上次找到的窗口以用于下一行的命令.
-
-    文本框内容写入 := Trim(文本框内容写入,"|")
-    GuiControl, , % 文本框ID, % "|" 文本框内容写入
-    GuiControl, Choose, % 文本框ID, 1
+    Gui +LastFound ; 让 GUI 窗口成为上次找到的窗口以用于下一行的命令.
 
     ;MsgBox,% 字符坐标替换(窗口初始坐标x)
     窗口初始坐标x:= Calculate(字符坐标替换(窗口初始坐标x))
@@ -270,10 +298,23 @@ Return
     if  (VirtualHeight < (窗口初始坐标y + 窗口初始高度))
         窗口初始坐标y:= VirtualHeight - 窗口初始高度
 
-    Gui,searchbox: Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
+    Gui, Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
+
     SetTimer, ExitScript, Off   ;关闭5秒后的退出操作
+
+    If (参数3="自动弹出"){
+        自动弹出常驻窗口次数++
+        IniWrite, %自动弹出常驻窗口次数%, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口次数
+    }
+
     WinSet, Transparent,%窗口透明度%,%窗口标题名称% ahk_class AutoHotkeyGUI
+
     Sleep, 20
+
+    文本框内容写入 := Trim(文本框内容写入,"|")
+    ;MsgBox, %文本框内容写入%
+    更新ListView内容(文本框内容写入)
+
     ControlFocus,Edit1,%窗口标题名称% ahk_class AutoHotkeyGUI
     OnMessage(0x0101, "searchbox")
 Return
@@ -299,82 +340,100 @@ Return
 Return
 
 ;[允许gui窗口调整大小]----------------------------------
-searchboxGuiSize:
-    GuiControl, Move, 文本框选择值1, % "H" . (A_GuiHeight - 46) . " W" . (A_GuiWidth +5)
+GuiSize:
+    GuiControl, Move, 文本框选择值1, % "H" . (A_GuiHeight - 64) . " W" . (A_GuiWidth +5)
     GuiControl, Move, 搜索框输入值, % "W" . (A_GuiWidth +5)
 Return
 ;[gui窗口关闭事件]----------------------------------
-searchboxGuiClose:
+GuiClose:
     FileAppend,%唯一性%`n,%A_Temp%\常驻窗口关闭记录.txt
-
     SetTimer, FollowParentWindow, Off  ; 停止跟随父窗口
-    Gui,searchbox: Destroy
+    Gui, Destroy
 ExitApp
 Return
+;[gui右键点击事件]----------------------------------
+GuiContextMenu:  ; 运行此标签来响应右键点击或按下 Apps 键.
+    if (A_GuiControl != "文本框选择值1")  ; 这个检查是可选的. 让它只为 ListView 中的点击显示菜单.
+        return
+
+    ;MsgBox,% 获取选中项的值(A_EventInfo)
+    global 文本框选择值1:= 获取选中项的值2()
+    Menu, searchbox2, Add, 打开, 打开
+    Menu, searchbox2, Add, 打开所在路径, 打开所在路径
+
+    Menu, searchbox2, Add, 复制到剪切板, 复制到剪切板
+    Menu, searchbox2, Add, 直接复制粘贴,直接复制粘贴
+
+    自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+    历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+
+    Menu, searchbox2, Add, 设为默认路径, 选中项设为默认路径
+    if (自动跳转到默认路径="关闭") or (自动跳转到默认路径="开启" and 历史路径设为默认路径="开启")
+        Menu, searchbox2, Disable, 设为默认路径
+    Else
+        Menu, searchbox2, Enable, 设为默认路径
+
+    Menu, searchbox2, Add, 添加到常用, 添加到常用
+    Menu, searchbox2, Add, 从常用中移除, 从常用中移除
+    Menu, searchbox2, Show
+return
+
 ;[窗口各个按钮功能直达]-------------------------------------
 当前打开:
     gosub,将所有内容路径加入到数组
     实时Text:= 换行符转换为竖杠(RemoveDuplicateLines(移除空白行(Trim(资管所有路径 "`n" do所有路径 "`n" tc所有路径 "`n" xy所有路径 "`n" qdir所有路径 "`n" dc所有路径,"`n"))))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 
 常用路径:
     gosub,将所有内容路径加入到数组
     实时Text:= 换行符转换为竖杠(移除空白行(自定义常用路径))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 常用路径1:
     实时Text:= 换行符转换为竖杠(移除空白行(常用路径1))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 常用路径2:
     实时Text:= 换行符转换为竖杠(移除空白行(常用路径2))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 常用路径3:
     实时Text:= 换行符转换为竖杠(移除空白行(常用路径3))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 常用路径4:
     实时Text:= 换行符转换为竖杠(移除空白行(常用路径4))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 常用路径5:
     实时Text:= 换行符转换为竖杠(移除空白行(常用路径5))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 
 历史打开:
     gosub,将所有内容路径加入到数组
     实时Text:= 换行符转换为竖杠(移除空白行(历史所有路径))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 全部目录路径:
     gosub,将所有内容路径加入到数组
     gosub,将所有内容路径加入到数组2
     实时Text:= 换行符转换为竖杠(Trim(移除空白行(合并所有路径),"`n"))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 do收藏夹:
     gosub,将所有内容路径加入到数组
     实时Text:= 换行符转换为竖杠(移除空白行(获取到的do收藏夹路径))
-    GuiControl, , % 文本框ID, % "|" 实时Text
-    GuiControl, Choose, % 文本框ID, 1
+    更新ListView内容(实时Text)
 Return
 直接复制粘贴:
-    Gui searchbox: Submit, NoHide
-    文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
+    WinActivate,ahk_id %唯一性%
+    文本框选择值1:=获取选中项的值2()
+    ;MsgBox, %文本框选择值1%
     Clipboard:=文本框选择值1
     SendInput, ^v
+    ;ControlSend, , ^v, ahk_id %唯一性%
     ttip("已复制并粘贴到当前文本框:`n"文本框选择值1,3000)
     写入文本到(文本框选择值1,软件安装路径 "\ICO\历史跳转.ini",历史跳转保留数)
 Return
@@ -382,30 +441,57 @@ Return
 Return
 
 文本框选择后执行的操作:
+    ;MsgBox, %A_GuiEvent%
     if (A_GuiEvent = "DoubleClick"){
         Gosub, 打开跳转事件
     }
-Return
+    if (A_GuiEvent = "Normal"){
+        if (单击运行跳转="开启" and 参数3 !="全局版")
+            Gosub, 打开跳转事件
+    }
 
+    /*
+        if (A_GuiEvent = "Normal" || A_GuiEvent = "I"){
+            if WinActive("ahk_id " Gui_winID){
+            测试111:= 获取选中项的值2()
+            if (测试111 !=""){
+                ControlGetPos, cX, cY, cW, cH, SysListView321, ahk_id %Gui_winID%
+
+                cY2:=cY + cH
+                ;MsgBox, %cY2% `n %cY%
+                ToolTip, %测试111%, %cX%, %cY2%
+            }Else
+                ToolTip
+                }
+        }
+    */
+
+Return
 复制到剪切板:
-    Gui searchbox: Submit, NoHide
-    文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
+    ;文本框选择值1:=获取选中项的值(A_EventInfo)
+
     Clipboard:=文本框选择值1
     ttip("已复制: "文本框选择值1,3000)
 Return
 
-打开路径:
-    Gui searchbox: Submit, NoHide
-    文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
+打开:
+    ;文本框选择值1:=获取选中项的值(A_EventInfo)
     Run, % 文本框选择值1
-
 Return
 
+打开所在路径:
+    if not FileExist(文本框选择值1){
+        ttip("网络路径 或 路径不存在: "文本框选择值1,3000)
+    }Else{
+        if not InStr(FileExist(文本框选择值1), "D")
+            SplitPath, 文本框选择值1, , 文本框选择值1
+    }
+    Run, % 文本框选择值1
+Return
 添加到常用:
     自定义常用路径2:=Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是")
-    Gui searchbox: Submit, NoHide
 
-    文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
+    ;文本框选择值1:=获取选中项的值(A_EventInfo)
 
     自定义常用路径:=Trim(RemoveDuplicateLines(自定义常用路径2 "`n" 文本框选择值1),"`n") ;移除重复内容
     IniDelete, %软件安装路径%\个人配置.ini,常用路径
@@ -415,8 +501,7 @@ Return
 
 从常用中移除:
     自定义常用路径2:=Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是")
-    Gui searchbox: Submit, NoHide
-    文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
+    ;文本框选择值1:=获取选中项的值(A_EventInfo)
 
     自定义常用路径 := Trim(RemoveDuplicateLines(DeleteMatchingLines(自定义常用路径2, 文本框选择值1)),"`n")
     IniDelete, %软件安装路径%\个人配置.ini,常用路径
@@ -501,10 +586,10 @@ return
 
 ;[菜单项打开事件]-------------------------------------
 打开跳转事件:
-    Gui,searchbox: Show,NoActivate
-    Gui searchbox: Submit, NoHide
-    ;MsgBox, 点击了%文本框选择值1%
-    文本框选择值1:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
+    ;Gui, Show,NoActivate
+    文本框选择值1:=获取选中项的值2()
+    if (文本框选择值1="")
+        Return
 
     if (参数3="全局版"){ ;如果是全局版
         ;MsgBox, %全局性菜单项功能%
@@ -531,6 +616,9 @@ Return
         ttip("网络路径 或 路径不存在: "跳转目标路径,3000)
         ;MsgBox, 1
         ;Return
+    }Else{
+        if not InStr(FileExist(跳转目标路径), "D")
+            SplitPath, 跳转目标路径, , 跳转目标路径
     }
     ;MsgBox, 跳转目标路径: %跳转目标路径%`n另存为窗口id值: %另存为窗口id值%`n跳转方式: %跳转方式%
 
@@ -579,7 +667,7 @@ Return
 父窗口关闭运行事件:
     if !WinExist("ahk_id " 参数2)  ; 如果父窗口已关闭
     {
-        Gui, searchbox: Destroy
+        Gui,  Destroy
         SetTimer, FollowParentWindow, Off
         SetTimer, 父窗口关闭运行事件, Off
         ExitApp
@@ -587,47 +675,75 @@ Return
     }
 Return
 ;[搜索框内容定位和右键菜单]-------------------------------------
+/*
 #If MouseIsOver(%窗口标题名称% " ahk_class AutoHotkeyGUI") ;当前鼠标所指的窗口
-    ~LButton::
-        MouseGetPos, , ,,OutputVarControl
-        if (OutputVarControl="Edit1"){
-            ;WinGet, activeWindow22, ID, A
-            WinActivate,ahk_id %Gui_winID%
-        }
-    return
+ ~LButton::
+     MouseGetPos, , ,,OutputVarControl
+     if (OutputVarControl="Edit1"){
+         ;WinGet, activeWindow22, ID, A
+         WinActivate,ahk_id %Gui_winID%
+     }
+ return
 
-    RButton::
-        Critical
-        KeyWait, RButton
-        KeyWait, RButton, D T0.1
-        if (ErrorLevel=1){
-            MouseGetPos, , ,,OutputVarControl2
-            if (OutputVarControl2="ListBox1"){
+     RButton::
+         Critical
+         KeyWait, RButton
+         KeyWait, RButton, D T0.1
+         if (ErrorLevel=1){
+             MouseGetPos, , ,,OutputVarControl2
+             if (OutputVarControl2="ListBox1"){
 
-                Menu, searchbox2, Add, 复制到剪切板, 复制到剪切板
-                Menu, searchbox2, Add, 直接复制粘贴,直接复制粘贴
-                Menu, searchbox2, Add, 打开路径, 打开路径
+                 Menu, searchbox2, Add, 复制到剪切板, 复制到剪切板
+                 Menu, searchbox2, Add, 直接复制粘贴,直接复制粘贴
+                 Menu, searchbox2, Add, 打开路径, 打开路径
 
-                自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
-                历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+                 自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+                 历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
 
-                Menu, searchbox2, Add, 设为默认路径, 选中项设为默认路径
-                if (自动跳转到默认路径="关闭") or (自动跳转到默认路径="开启" and 历史路径设为默认路径="开启")
-                    Menu, searchbox2, Disable, 设为默认路径
-                Else
-                    Menu, searchbox2, Enable, 设为默认路径
+                 Menu, searchbox2, Add, 设为默认路径, 选中项设为默认路径
+                 if (自动跳转到默认路径="关闭") or (自动跳转到默认路径="开启" and 历史路径设为默认路径="开启")
+                     Menu, searchbox2, Disable, 设为默认路径
+                 Else
+                     Menu, searchbox2, Enable, 设为默认路径
 
-                Menu, searchbox2, Add, 添加到常用, 添加到常用
-                Menu, searchbox2, Add, 从常用中移除, 从常用中移除
-                Menu, searchbox2, Show
-                ;
+                 Menu, searchbox2, Add, 添加到常用, 添加到常用
+                 Menu, searchbox2, Add, 从常用中移除, 从常用中移除
+                 Menu, searchbox2, Show
+                 ;
 
-            }
-        }
-        Critical, Off
-    return
+             }
+         }
+         Critical, Off
+     return
+
 #If
 return
+ */
+#If WinActive("ahk_id" Gui_winID) ; 搜索框的热键
+    Up::
+        ControlFocus,,ahk_id %文本框ID%
+        RowNumber := LV_GetNext(0)
+        If (RowNumber = 0){
+            LV_Modify(1, "+Focus +Select +Vis")
+        }Else If (RowNumber = 1){
+            LV_Modify(LV_GetCount(), "+Focus +Select +Vis")
+        }
+        Else{
+            LV_Modify(RowNumber-1, "+Focus +Select +Vis")
+        }
+    Return
+
+    Down::
+        ControlFocus,,ahk_id %文本框ID%
+        RowNumber := LV_GetNext(0)
+        If (RowNumber = 0 || RowNumber=LV_GetCount()){
+            LV_Modify(1, "+Focus +Select +Vis")
+        }Else{
+            LV_Modify(RowNumber+1, "+Focus +Select +Vis")
+        }
+    Return
+
+#If
 
 ;[跟随父窗口移动]═════════════════════════════════════════════════
 ;需要传递的全局变量
@@ -646,7 +762,7 @@ FollowParentWindow:
     menu名:= menu
     if !WinExist("ahk_id " Gs_tcWinID)  ; 如果父窗口已关闭
     {
-        Gui, %menu名%: Destroy
+        Gui,  Destroy
         SetTimer, FollowParentWindow, Off
         ExitApp
         return
@@ -657,11 +773,11 @@ FollowParentWindow:
             ;MsgBox, 1
             是否是第一次激活切换:="否"
             是否是第一次非激活切换:="是"
-            Gui,%menu名%:+AlwaysOnTop
+            Gui,+AlwaysOnTop
         }
         WinGet, ExStyle, ExStyle, ahk_id %Gs_tcWinID% ; 检查窗口是否已经置顶
         if (ExStyle & 0x8)
-            Gui,%menu名%:+AlwaysOnTop
+            Gui,+AlwaysOnTop
     }Else{
         if (是否是第一次非激活切换="是"){
             ;MsgBox, 2
@@ -669,9 +785,9 @@ FollowParentWindow:
             是否是第一次非激活切换:="否"
             WinGet, ExStyle, ExStyle, ahk_id %Gs_tcWinID% ; 检查窗口是否已经置顶
             if (ExStyle & 0x8){ ; 如果窗口已经置顶
-                Gui,%menu名%:+AlwaysOnTop
+                Gui,+AlwaysOnTop
             }Else{
-                Gui,%menu名%:-AlwaysOnTop
+                Gui,-AlwaysOnTop
                 ;MsgBox, 4
             }
         }
@@ -688,7 +804,7 @@ FollowParentWindow:
             是否是第一次最小化切换:="否"
             是否是第一次中化切换:="是"
             ;WinGetPos, guiX3, guiY3, guiW3, guiH3, ahk_id %Gui_winID%
-            Gui,%menu名%:hide
+            Gui,hide
             ;print("最小化" guiX3 "`n" guiY3)
         }
         Return
@@ -698,13 +814,13 @@ FollowParentWindow:
             是否是第一次最小化切换:="是"
             是否是第一次中化切换:="是"
             ;MsgBox, 2
-            Gui,%menu名%:Show,NoActivate
+            Gui,Show,NoActivate
             ;WinMove, ahk_id %Gui_winID%,, %guiX3%, %guiY3%
-            Gui,%menu名%:+AlwaysOnTop
+            Gui,+AlwaysOnTop
             WinActivate, ahk_id %Gs_tcWinID%
             ;print("最大化" guiX3 "`n" guiY3)
         } ;Else
-        ;Gui,%menu名%:+AlwaysOnTop
+        ;Gui,+AlwaysOnTop
         Return
     }Else{
         if (是否是第一次中化切换="是"){
@@ -712,9 +828,9 @@ FollowParentWindow:
             是否是第一次最小化切换:="是"
             是否是第一次中化切换:="否"
             ;MsgBox, 2
-            Gui,%menu名%:Show,NoActivate
+            Gui,Show,NoActivate
             ;WinMove, ahk_id %Gui_winID%,, %guiX3%, %guiY3%
-            Gui,%menu名%:+AlwaysOnTop
+            Gui,+AlwaysOnTop
             WinActivate, ahk_id %Gs_tcWinID%
             ;print("中化" guiX3 "`n" guiY3)
         }
@@ -766,10 +882,6 @@ return
     dc所有路径:=DoubleCommander_path(给dc发送热键)
 
     自定义常用路径2:=Var_Read("","","常用路径",软件安装路径 "\个人配置.ini","是")
-    Loop, 5
-    {
-        自定义常用路径2 .= "`n" 常用路径%A_Index%
-    }
 
     自定义常用路径:=ReplaceVars(自定义常用路径2)
     自定义常用路径:=程序专属路径筛选(自定义常用路径)
@@ -782,16 +894,6 @@ return
 
     常用所有路径:= 自定义常用路径
 
-    if (文件夹名显示在前="开启"){
-        资管所有路径 := 给行首加文件名(资管所有路径)
-        do所有路径 := 给行首加文件名(do所有路径)
-        tc所有路径 := 给行首加文件名(tc所有路径)
-        自定义常用路径 := 给行首加文件名(自定义常用路径)
-        xy所有路径 := 给行首加文件名(xy所有路径)
-        qdir所有路径 := 给行首加文件名(qdir所有路径)
-        dc所有路径 := 给行首加文件名(dc所有路径)
-        历史所有路径 := 给行首加文件名(历史所有路径)
-    }
 return
 
 将所有内容路径加入到数组2:
@@ -801,9 +903,6 @@ return
         获取到的do收藏夹路径:=DirectoryOpusgetfa()
         if (失效路径显示设置 ="关闭")
             获取到的do收藏夹路径:= FilterExistingPaths(获取到的do收藏夹路径)
-    }
-    if (文件夹名显示在前="开启"){
-        获取到的do收藏夹路径 := 给行首加文件名(获取到的do收藏夹路径)
     }
 
     合并所有路径:= Trim(资管所有路径, "`n") "`n" Trim(do所有路径, "`n") "`n" Trim(tc所有路径, "`n") "`n" Trim(获取到的do收藏夹路径, "`n") "`n" Trim(常用所有路径, "`n") "`n" Trim(历史所有路径, "`n") "`n" Trim(xy所有路径, "`n") "`n" Trim(qdir所有路径, "`n") "`n" Trim(dc所有路径, "`n")
@@ -843,7 +942,7 @@ return
 
 选中项设为默认路径:
     ;MsgBox, 1
-    Gui searchbox: Submit, NoHide
+    ;文本框选择值1:=获取选中项的值(A_EventInfo)
     默认路径222:=RegExReplace(文本框选择值1, "^\<(.*?)\>")
     IniWrite, %默认路径222%, %软件安装路径%\个人配置.ini,基础配置,默认路径
 
@@ -858,15 +957,22 @@ EM_SETCUEBANNER(handle, string, hideonfocus := true){
     static EM_SETCUEBANNER := 0x1501
     return DllCall("user32\SendMessage", "ptr", handle, "uint", EM_SETCUEBANNER, "int", hideonfocus, "str", string, "int")
 }
-
-;搜索框搜索内容
+;搜索框搜索内容【没加防抖的版本】--------------------------------------------------------
+/*
 searchbox(W, L, M, H)
 {
-    global 搜索框ID,文本框ID,所有路径合集,文本框内容写入
+    global 搜索框ID,文本框ID,所有路径合集,文本框内容写入,返回的最多结果次数,ev排除列表,启用ev进行搜索,文件夹名显示在前
     Static LastText := ""
     If (H = 搜索框ID)
     {
         GuiControlGet, value, , % 搜索框ID
+
+        if (启用ev进行搜索="开启"){
+            value2:=everythingSearch(ev排除列表 " " value,返回的最多结果次数)   ;调用everything进行搜索
+            if (文件夹名显示在前="开启")
+                value2:=给行首加文件名(value2)
+            value2:=StrReplace(value2, "`n", "|")
+        }
         ;MsgBox, %value%
         If (value And value!=LastText)
         {
@@ -874,12 +980,71 @@ searchbox(W, L, M, H)
             for index, ele in 所有路径合集
                 if (InStr(ele,value))
                     Text .= (Text ? "|" ele : ele)
+            if (启用ev进行搜索="开启")
+                Text := trim(value2 "|" Text, "|")
             GuiControl, , % 文本框ID, % "|" Text
         }
         Else If (!value)
             GuiControl, , % 文本框ID, % "|" 文本框内容写入
         LastText := value
     }
+}
+*/
+
+;搜索框搜索内容[加了防抖]
+searchbox(W, L, M, H)
+{
+    global 搜索框ID,文本框ID,所有路径合集,文本框内容写入,搜索延迟
+    Static LastText := ""
+    Static DebounceTimer := 0  ; 防抖计时器
+
+    If (H = 搜索框ID)
+    {
+        GuiControlGet, value, , % 搜索框ID
+        if (搜索延迟 > 0){
+            ; 取消之前的计时器
+            if (DebounceTimer) {
+                SetTimer, % DebounceTimer, Delete
+            }
+
+            ; 设置新的防抖计时器（300毫秒后执行）
+            DebounceTimer := Func("PerformSearch").Bind(value, LastText)
+            SetTimer, % DebounceTimer, -%搜索延迟%
+        }Else{
+            PerformSearch(value, LastText)
+        }
+    }
+}
+
+PerformSearch(value, LastText)
+{
+    global 搜索框ID,文本框ID,所有路径合集,文本框内容写入,启用ev进行搜索,ev排除列表,返回的最多结果次数,文件夹名显示在前,Text2
+
+    ; 重置计时器标识
+    searchbox.DebounceTimer := 0
+
+    If (value And value != LastText)
+    {
+        Text := ""
+        for index, ele in 所有路径合集
+            if (InStr(ele,value))
+                Text .= (Text ? "|" ele : ele)
+
+        if (启用ev进行搜索 = "开启") {
+            value2 := everythingSearch(ev排除列表 " " value, 返回的最多结果次数)   ;调用everything进行搜索
+            value2 := StrReplace(value2, "`n", "|")
+            Text := trim(value2 "|" Text, "|")
+        }
+        if (Text !=Text2)
+            更新ListView内容(Text)
+        Text2:=Text
+        ;GuiControl, , % 文本框ID, % "|" Text
+    }
+    Else If (!value)
+        更新ListView内容(文本框内容写入)
+
+    ; 更新LastText
+    searchbox.LastText := value
 }
 
 RemoveToolTip:
@@ -890,6 +1055,9 @@ return
 字符坐标替换(str){
     global 唯一性
     WinGetPos, 父窗口X, 父窗口Y, 父窗口W, 父窗口H, ahk_id %唯一性%
+    ;GetWindowRect(唯一性, 父窗口X, 父窗口Y)
+    GetClientSize(唯一性, 父窗口W, 父窗口H)
+
     CoordMode, Mouse, Screen
     MouseGetPos, 鼠标位置X, 鼠标位置Y
 
@@ -1012,3 +1180,206 @@ return
     ttip("已导出日志到软件安装路径下",3000)
     FileAppend,% "窗口边界信息：" VirtualWidth " " VirtualHeight "`n`n" 常驻窗口的相关坐标信息 "`n`n" 父窗口的信息 "`n" 常驻窗口的信息 "`n`n" 显示器的信息,%软件安装路径%\导出日志%A_Now%.txt
 Return
+
+;Everything搜=========================================================================================
+;[使用everything搜索,返回第一个匹配值]
+everythingSearch(str,最多次数:="150",MatchPath:="0",MatchWholeWord:="0",MatchCase:="0",Regex:="0",Max:="150",Sort1:="1"){
+    ev := new everything_xiaoyao
+    ;set
+    ;MatchPath 完整路径匹配(true)
+    ;MatchWholeWord 全字匹配(true)
+    ;MatchCase 匹配大小写(true)
+    ;Regex 匹配正则表达式(true)
+    ;Max 返回的最大结果数(1)
+    ;Sort 结果的排序方式(1-26) https://www.voidtools.com/zh-cn/support/everything/sdk/everything_setsort/
+    ;ev.SetMatchPath(MatchPath)  ;完整路径匹配(1)
+    ;ev.SetMatchWholeWord(MatchWholeWord)     ;全字匹配(1)
+    ;ev.SetMatchCase(MatchCase)  ;匹配大小写(1)
+    ;ev.SetRegex(Regex)  ;匹配正则表达式(1)
+    ;ev.SetMax(Max)    ;返回的最大结果数(10)
+    ;ev.SetSort(Sort1)   ;结果的排序方式(1-26) https://www.voidtools.com/zh-cn/support/everything/sdk/everything_setsort/
+
+    ev.SetSearch(str)
+    ;执行搜索
+    ev.Query()
+
+    ;MsgBox, % "`n最大返回数" ev.GetMax() "`n返回匹配总数" ev.GetTotResults() "`n排序" ev.GetSort() "`n实际的" ev.GetResultListSort() "`n" ev.GetResultFileName(0) "`n" ev.GetResultFullPathName(0)
+    所有结果文件路径:=""
+    Loop,%最多次数%
+        所有结果文件路径.=ev.GetResultFullPathName(A_Index-1) "`n"
+    return trim(所有结果文件路径, "`n")
+}
+
+;[IPC方式和everything进行通讯，修改于AHK论坛]
+class everything_xiaoyao
+{
+    __New(){
+        this.hModule := DllCall("LoadLibrary", str, everyDLL)
+    }
+    __Get(aName){
+    }
+    __Set(aName, aValue){
+    }
+    __Delete(){
+        DllCall("FreeLibrary", "UInt", this.hModule)
+        return
+    }
+    SetSearch(aValue){
+        this.eSearch := aValue
+        dllcall(everyDLL "\Everything_SetSearch",str,aValue)
+        return
+    }
+    ;设置全字匹配
+    SetMatchWholeWord(aValue){
+        this.eMatchWholeWord := aValue
+        dllcall(everyDLL "\Everything_SetMatchWholeWord",int,aValue)
+        return
+    }
+    ;完整路径匹配
+    SetMatchPath(aValue){
+        this.eMatchPath := aValue
+        dllcall(everyDLL "\Everything_SetMatchPath",int,aValue)
+        return
+    }
+    ;大小写匹配
+    SetMatchCase(aValue){
+        this.eMatchCase := aValue
+        dllcall(everyDLL "\Everything_SetMatchCase",int,aValue)
+        return
+    }
+    ;设置正则表达式搜索
+    SetRegex(aValue){
+        this.eRegex := aValue
+        dllcall(everyDLL "\Everything_SetRegex",int,aValue)
+        return
+    }
+    ;【新增】设置返回的最大结果数
+    SetMax(aValue){
+        this.eMax := aValue
+        dllcall(everyDLL "\Everything_SetMax", "int", aValue)
+        return
+    }
+    ;【新增】设置结果的排序方式
+    SetSort(aValue){
+        this.eSort := aValue
+        dllcall(everyDLL "\Everything_SetSort", "int", aValue)
+        return
+    }
+    ;【新增】最大结果数
+    GetMax(){
+        return dllcall(everyDLL "\Everything_GetMax")
+    }
+    ;【新增】结果的排序方式
+    GetSort(){
+        return dllcall(everyDLL "\Everything_GetSort")
+    }
+    ;【新增】实际的结果的排序方式
+    GetResultListSort(){
+        return dllcall(everyDLL "\Everything_GetResultListSort")
+    }
+
+    ;执行搜索动作
+    Query(aValue=1){
+        dllcall(everyDLL "\Everything_Query",int,aValue)
+        return
+    }
+    ;返回管理员权限状态
+    GetIsAdmin(){
+        return dllcall(everyDLL "\Everything_IsAdmin")
+    }
+    ;返回匹配总数
+    GetTotResults(){
+        return dllcall(everyDLL "\Everything_GetTotResults")
+    }
+    ;返回可见文件结果的数量
+    GetNumFileResults(){
+        return dllcall(everyDLL "\Everything_GetNumFileResults")
+    }
+    ;返回文件名
+    GetResultFileName(aValue){
+        return strget(dllcall(everyDLL "\Everything_GetResultFileName",int,aValue))
+    }
+    ;返回文件全路径
+    GetResultFullPathName(aValue,cValue=1000){
+        VarSetCapacity(bValue,cValue*2)
+        dllcall(everyDLL "\Everything_GetResultFullPathName",int,aValue,str,bValue,int,cValue)
+        return bValue
+    }
+}
+
+更新ListView内容(str,分隔符:="|"){
+    global 文本框ID
+    LV_Delete()
+    Loop, parse, str, %分隔符%
+    {
+        if (RegExMatch(A_LoopField, "^\s*$")) ;匹配空白行
+            Continue
+        if (文件夹名显示在前="开启"){
+            SplitPath, A_LoopField, name
+            LV_Add("",name, A_LoopField)
+        }Else
+            LV_Add("",A_LoopField)
+    }
+    if (文件夹名显示在前 ="开启")
+        SetColumnWidthWithLimit(1,名称列最大宽度)
+    Else
+        LV_ModifyCol(1)
+    LV_ModifyCol(2)
+    ;LV_Modify(1, "+Focus +Select +Vis")
+    ;ControlFocus,,ahk_id %文本框ID%
+}
+
+; 设置列宽并限制最大值的函数
+SetColumnWidthWithLimit(col, maxWidth)
+{
+    ; 先自动调整列宽
+    LV_ModifyCol(col, "AutoHdr")
+    Sleep, 10
+
+    ; 获取当前宽度
+    SendMessage, 0x101D, col-1, 0, SysListView321,%窗口标题名称% ahk_class AutoHotkeyGUI  ; 0x101D 为 LVM_GETCOLUMNWIDTH.
+    currentWidth := ErrorLevel
+    ;MsgBox, %currentWidth%
+
+    ; 如果超过最大值，设置为最大值
+    if (currentWidth > maxWidth)
+    {
+        LV_ModifyCol(col, maxWidth)
+    }
+}
+
+获取选中项的值(行号){
+    选择值2:=""
+    if (文件夹名显示在前 ="开启")
+        LV_GetText(选择值2, 行号, 2)
+    Else
+        LV_GetText(选择值2, 行号, 1)
+    Return 选择值2
+}
+
+获取选中项的值2(){
+    DelRowList:=""
+    RowNumber:=0
+    RowText:=""
+    RowText2:=""
+    Loop
+    {
+        RowNumber := LV_GetNext(RowNumber) ; 在前一次找到的位置后继续搜索.
+        if not RowNumber ; 上面返回零, 所以选择的行已经都找到了.
+            break
+        DelRowList:=RowNumber . ":" . DelRowList
+        zonghangshu:=A_Index + 1
+    }
+    loop, parse, DelRowList, :
+    {
+        if (zonghangshu = A_Index)
+            Break
+        if (文件夹名显示在前 ="开启")
+            LV_GetText(RowText2, A_loopfield,2) ; 获取每行第一个字段的文本 (索引从1开始)
+        Else
+            LV_GetText(RowText2, A_loopfield,1) ; 获取每行第一个字段的文本 (索引从1开始)
+        RowText:=RowText2 "`n" RowText
+        zonghangshu2:=A_Index
+    }
+    Return Trim(RowText,"`n")
+}

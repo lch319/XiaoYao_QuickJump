@@ -1,5 +1,5 @@
 ﻿;====================================================================================
-;仿Listary_C+G 列出打开的路径 （支持文件管理器、Directory Opus、 TC）最后更新：20250727
+;仿Listary_C+G 列出打开的路径 （支持文件管理器、Directory Opus、 TC）最后更新：20251227
 ;代码借鉴 https://www.autohotkey.com/boards/viewtopic.php?f=6&t=102377
 ;====================================================================================
 #NoEnv
@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.5.1"
+软件版本号:="4.5.2"
 
 ;如果配置不存在，新建一个默认配置
 if not FileExist(A_ScriptDir "\个人配置.ini")
@@ -70,7 +70,7 @@ DirectoryOpus全标签路径:=Var_Read("DirectoryOpus全标签路径","开启","
 一键跳转热键:=Var_Read("一键跳转热键","","基础配置",A_ScriptDir "\个人配置.ini","否")
 跳转方式:=Var_Read("跳转方式","1","基础配置",A_ScriptDir "\个人配置.ini","是")
 保留个数:=Var_Read("历史跳转保留数","5","基础配置",A_ScriptDir "\个人配置.ini","是")
-开机自启:=Var_Read("开机自启","0","基础配置",A_ScriptDir "\个人配置.ini","是")
+开机自启:=Var_Read("开机自启","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
 
 DO的收藏夹:=Var_Read("DO的收藏夹","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
 if (DO的收藏夹="开启")
@@ -78,8 +78,8 @@ if (DO的收藏夹="开启")
 
 自动弹出常驻窗口:=Var_Read("自动弹出常驻窗口","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
 常驻搜索窗口呼出热键:=Var_Read("常驻搜索窗口呼出热键","","基础配置",A_ScriptDir "\个人配置.ini","否")
-窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X - 10 + 父窗口W","基础配置",A_ScriptDir "\个人配置.ini","是")
-窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 50","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X + 父窗口W","基础配置",A_ScriptDir "\个人配置.ini","是")
+窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 20","基础配置",A_ScriptDir "\个人配置.ini","是")
 窗口初始宽度:=Var_Read("窗口初始宽度","300","基础配置",A_ScriptDir "\个人配置.ini","是")
 窗口初始高度:=Var_Read("窗口初始高度","360","基础配置",A_ScriptDir "\个人配置.ini","是")
 窗口背景颜色:=Var_Read("窗口背景颜色","","基础配置",A_ScriptDir "\个人配置.ini","是")
@@ -147,8 +147,6 @@ loop 5
     }
 }
 
-OnExit, 退出时运行
-
 ;------------------ 读取配置终止线 ----------------
 
 if (隐藏软件托盘图标="开启"){
@@ -156,6 +154,12 @@ if (隐藏软件托盘图标="开启"){
 }
 if not FileExist(A_ScriptDir "\ICO\历史跳转.ini")
     FileAppend, ,%A_ScriptDir%\ICO\历史跳转.ini
+
+if (开机自启="开启")
+    开机自启:="1"
+Else
+    开机自启:="0"
+;MsgBox, %开机自启%
 Label_AutoRun(开机自启)
 ;------------------ 托盘右键菜单设置 ----------------
 Menu,Tray,NoStandard
@@ -201,6 +205,7 @@ if (IsDarkMode() and 深浅主题切换="跟随系统") or (深浅主题切换="
 ;------------------ 自动弹出菜单设置 ------------------
 ;If (自动弹出常驻窗口="开启")
 ;SetTimer, 自动弹出常驻事件,10
+FileDelete, %A_Temp%\跳转默认打开记录.txt
 run,"%A_ScriptDir%\XiaoYao_快速跳转.exe" "%A_ScriptDir%\辅助\自动弹出常驻窗口.ahk"
 
 If (自动弹出菜单="开启"){
@@ -248,7 +253,7 @@ If (自动弹出菜单="开启"){
                 WinGetClass, WindowClass, ahk_id %WinID2%   ; 获取目标窗口的类名
                 if (WindowClass = "#32770"){    ; 判断类名是否为 #32770
                     Gosub, ShowMenu
-                    自动弹出菜单计数++
+                    Gosub,自动弹出菜单计数
                     DialogType := ""
                 }
             }
@@ -558,13 +563,13 @@ Return
 
 ShowMenu2:
     全局性菜单:="开启"
-    手动弹出计数++
     Gosub, ShowMenu
+    Gosub,手动弹出计数
 Return
 
 ShowMenu1:
-    手动弹出计数++
     Gosub, ShowMenu
+    Gosub,手动弹出计数
 Return
 ; -------------------------------------------------------------------
 Choice:
@@ -613,7 +618,7 @@ return
 ; -------------------------------------------------------------------
 
 一键跳转路径:
-    手动弹出计数++
+    Gosub,手动弹出计数
     $WinID := WinExist("A")
     ;MsgBox,1
     Firstpath:=Trim(Explorer_Path() "`n" DirectoryOpus_path("Clipboard SET {sourcepath}") "`n" TotalCommander_path() "`n" XYplorer_Path("1") "`n" DoubleCommander_path(给dc发送热键),"`n")
@@ -682,7 +687,12 @@ return
 ;字符坐标替换------------------------------------------------------------------------------
 字符坐标替换(str){
     ;global 唯一性
+    
+    hwnd := WinExist("A")
     WinGetPos, 父窗口X, 父窗口Y, 父窗口W, 父窗口H, A
+    ;GetWindowRect(hwnd, 父窗口X, 父窗口Y)
+    GetClientSize(hwnd, 父窗口W, 父窗口H)
+
     CoordMode, Mouse, Screen
     MouseGetPos, 鼠标位置X, 鼠标位置Y
 
@@ -779,13 +789,13 @@ Return
 ;==================================================================================================
 
 打开常驻搜索窗口:
-    手动弹出计数++
+    Gosub,手动弹出计数
     获取窗口id:=WinExist("A")
     run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -常驻窗口跟随 %获取窗口id%
 return
 
 打开常驻搜索窗口2:
-    手动弹出计数++
+    Gosub,手动弹出计数
     获取窗口id:=WinExist("A")
     run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -常驻窗口跟随 %获取窗口id% 全局版
 return
@@ -806,7 +816,7 @@ return
         if WinActive(winTitle){
             WinID2 := WinExist(winTitle)
             Gosub, ShowMenu
-            自动弹出菜单计数++
+            Gosub,自动弹出菜单计数
             ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
             WinWaitNotActive,% winTitle
             break  ; 每次只处理一个出现的窗口
@@ -844,18 +854,24 @@ ReplaceBrowseForFolder(Params*) {
         ;Else
         ;WinClose % "ahk_id" hwnd
         Gosub, ShowMenu
-        自动弹出菜单计数++
+        Gosub,自动弹出菜单计数
     }
 }
 
-退出时运行:
+自动弹出菜单计数:
     ;如果配置不存在，新建一个默认配置
     if not FileExist(A_ScriptDir "\个人配置.ini")
         FileCopy,%A_ScriptDir%\ICO\默认.ini, %A_ScriptDir%\个人配置.ini
-
+    自动弹出菜单计数++
     IniWrite, %自动弹出菜单计数%, %A_ScriptDir%\个人配置.ini,基础配置,自动弹出菜单计数
+Return
+
+手动弹出计数:
+    ;如果配置不存在，新建一个默认配置
+    if not FileExist(A_ScriptDir "\个人配置.ini")
+        FileCopy,%A_ScriptDir%\ICO\默认.ini, %A_ScriptDir%\个人配置.ini
+    手动弹出计数++
     IniWrite, %手动弹出计数%, %A_ScriptDir%\个人配置.ini,基础配置,手动弹出计数
-ExitApp
 Return
 
 开启自动跳默认路径:

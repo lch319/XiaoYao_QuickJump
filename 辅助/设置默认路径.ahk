@@ -30,6 +30,7 @@ if (IsDarkMode() and 深浅主题切换="跟随系统") or (深浅主题切换="
 ;深色/浅色主题切换1【结束】---------------------------------
 
 Gui,+HwndGui_winID2
+FileAppend,%Gui_winID2%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 gui, font, s10
 Gui, Add, Text, x10 y15 , 每次打开对话框时自动跳转到默认路径
 Gui, Add, Edit, x10 y35 w300 vDefaultPath HwndBtn1, %默认路径%  ; 初始值设为桌面路径

@@ -2076,4 +2076,21 @@ IsDarkMode() {
     return (AppsUseLightTheme = 0)
 }
 
-
+;获取窗口大小函数--------------------------------------
+;hwnd := WinExist("A")
+;读取客户端区域的宽度（w）和高度（h）
+;GetWindowRect(hwnd, x, y)
+;GetClientSize(hwnd, w, h)
+GetClientSize(hwnd, ByRef w, ByRef h) {
+  VarSetCapacity(rect, 16)
+  , DllCall("GetClientRect", "uint", hwnd, "uint", &rect)
+  w := NumGet(rect, 8, "int")
+  , h := NumGet(rect, 12, "int")
+}
+GetWindowRect(hwnd, ByRef x, ByRef y) {
+  VarSetCapacity(rect, 16, 0)
+  , DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", &rect)
+  x := NumGet(rect, 0, "int")
+  y := NumGet(rect, 4, "int")
+}
+;获取窗口大小函数--------------------------------------

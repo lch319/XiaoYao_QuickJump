@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.5.1"
+窗口标题名:="XiaoYao_快速跳转v4.5.2"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -24,6 +24,9 @@ Gosub, 设置可视化
 Return
 
 读取配置:
+    if not FileExist(软件配置路径 "\个人配置.ini")
+        FileCopy,%软件配置路径%\ICO\默认.ini, %软件配置路径%\个人配置.ini
+
     if FileExist(软件配置路径 "\个人配置.ini"){
         热键:=Var_Read("热键","","基础配置",软件配置路径 "\个人配置.ini","否")
         自动弹出菜单:=Var_Read("自动弹出菜单","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
@@ -41,14 +44,14 @@ Return
         一键跳转热键:=Var_Read("一键跳转热键","","基础配置",软件配置路径 "\个人配置.ini","否")
         跳转方式:=Var_Read("跳转方式","1","基础配置",软件配置路径 "\个人配置.ini","是")
         保留个数:=Var_Read("历史跳转保留数","5","基础配置",软件配置路径 "\个人配置.ini","是")
-        开机自启:=Var_Read("开机自启","0","基础配置",软件配置路径 "\个人配置.ini","是")
+        开机自启:=Var_Read("开机自启","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
 
         DO的收藏夹:=Var_Read("DO的收藏夹","开启","基础配置",软件配置路径 "\个人配置.ini","是")
 
         自动弹出常驻窗口:=Var_Read("自动弹出常驻窗口","开启","基础配置",软件配置路径 "\个人配置.ini","是")
         常驻搜索窗口呼出热键:=Var_Read("常驻搜索窗口呼出热键","","基础配置",软件配置路径 "\个人配置.ini","否")
-        窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X - 10 + 父窗口W","基础配置",软件配置路径 "\个人配置.ini","是")
-        窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 50","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口初始坐标x:=Var_Read("窗口初始坐标x","父窗口X + 父窗口W","基础配置",软件配置路径 "\个人配置.ini","是")
+        窗口初始坐标y:=Var_Read("窗口初始坐标y","父窗口Y + 20","基础配置",软件配置路径 "\个人配置.ini","是")
         窗口初始宽度:=Var_Read("窗口初始宽度","300","基础配置",软件配置路径 "\个人配置.ini","是")
         窗口初始高度:=Var_Read("窗口初始高度","360","基础配置",软件配置路径 "\个人配置.ini","是")
         窗口背景颜色:=Var_Read("窗口背景颜色","","基础配置",软件配置路径 "\个人配置.ini","是")
@@ -78,7 +81,7 @@ Return
         屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",软件配置路径 "\个人配置.ini","是")
         深浅主题切换:=Var_Read("深浅主题切换","跟随系统","基础配置",软件配置路径 "\个人配置.ini","是")
 
-        窗口文本行距:=Var_Read("窗口文本行距","20","基础配置",软件配置路径 "\个人配置.ini","是")
+        名称列最大宽度:=Var_Read("名称列最大宽度","200","基础配置",软件配置路径 "\个人配置.ini","是")
         隐藏软件托盘图标:=Var_Read("隐藏软件托盘图标","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
         手动弹出计数:=Var_Read("手动弹出计数","0","基础配置",软件配置路径 "\个人配置.ini","是")
         自动弹出菜单计数:=Var_Read("自动弹出菜单计数","0","基础配置",软件配置路径 "\个人配置.ini","是")
@@ -104,13 +107,19 @@ Return
         自定义_do收藏夹_文本 :=Var_Read("自定义_do收藏夹_文本","dopus","基础配置",软件配置路径 "\个人配置.ini","是")
         自定义_粘贴_文本 :=Var_Read("自定义_粘贴_文本","粘贴","基础配置",软件配置路径 "\个人配置.ini","是")
         自定义_更多_文本 :=Var_Read("自定义_更多_文本","更多","基础配置",软件配置路径 "\个人配置.ini","是")
+
+        单击运行跳转:=Var_Read("单击运行跳转","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        ev排除列表:=Var_Read("ev排除列表","!C:\Windows* !?:\$RECYCLE.BIN* !?:\Users\*\AppData\Local\Temp\* !?:\Users\*\AppData\Roaming\*","基础配置",软件配置路径 "\个人配置.ini","是")
+        返回的最多结果次数:=Var_Read("返回的最多结果次数","150","基础配置",软件配置路径 "\个人配置.ini","是")
+        启用ev进行搜索:=Var_Read("启用ev进行搜索","开启","基础配置",软件配置路径 "\个人配置.ini","是")
+        搜索延迟:=Var_Read("搜索延迟","50","基础配置",软件配置路径 "\个人配置.ini","是")
     }
 Return
 
 设置可视化:
 
     Auto_Launch:=开机自启
-    Auto_Launch:= Auto_Launch="0"?0:1
+    Auto_Launch:= Auto_Launch="关闭"?0:1
 
     自动弹出:=自动弹出菜单
     自动弹出:= 自动弹出="关闭"?0:1
@@ -134,6 +143,7 @@ Return
     替换双斜杠单反斜杠双引号:= 替换双斜杠单反斜杠双引号="关闭"?0:1
 
     管理员启动:= 管理员启动="关闭"?0:1
+    启用ev进行搜索:= 启用ev进行搜索="关闭"?0:1
 
     DO全标签:=DirectoryOpus全标签路径
     DO全标签:= DO全标签="关闭"?0:1
@@ -149,6 +159,8 @@ Return
 
     深浅主题切换1:=深浅主题切换
     深浅主题切换1 := 深浅主题切换1="跟随系统"?0:深浅主题切换1="浅色"?1:深浅主题切换1="深色"?2:1
+
+    单击运行跳转:= 单击运行跳转="关闭"?0:1
 
     IniRead, 自定义常用路径2, %软件配置路径%\个人配置.ini,常用路径
     常用路径1:=自定义常用路径2
@@ -171,7 +183,7 @@ Return
     Gui, 55:+HwndGui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
-    Gui,55:Add, Tab3,x0, 设置|常驻跟随窗口|窗口设置|高级设置|关于
+    Gui,55:Add, Tab3,x0, 设置|常驻跟随窗口|Everything|窗口设置|高级设置|关于
 
     Gui, 55:Margin, 20, 20
     Gui, 55:Font, W400, Microsoft YaHei
@@ -301,14 +313,14 @@ Return
     Gui, 55:Add, CheckBox,Checked%自定义_粘贴% x+20 yp+2 v自定义_粘贴 gOnCheckBoxChange6, 粘贴:
     Gui, 55:Add, Edit, x+29 yp-2 w110 h25 v自定义_粘贴_文本 +Disabled, %自定义_粘贴_文本%
 
-    Gui, 55:Add, Text, xm+%left_margin% yp+30, 文本行距：
-    Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口文本行距, %窗口文本行距%
+    Gui, 55:Add, Text, xm+%left_margin% yp+30, 透明度：
+    Gui, 55:Add, Edit, x+17 yp-2 w120 h25 v窗口透明度2, %窗口透明度%
 
     Gui, 55:Add, CheckBox,Checked%自定义_更多% x+20 yp+2 v自定义_更多 gOnCheckBoxChange7, 更多:
     Gui, 55:Add, Edit, x+29 yp-2 w110 h25 v自定义_更多_文本 +Disabled, %自定义_更多_文本%
 
-    Gui, 55:Add, Text, xm+%left_margin% yp+30, 透明度：
-    Gui, 55:Add, Edit, x+17 yp-2 w120 h25 v窗口透明度2, %窗口透明度%
+    Gui, 55:Add, Text, xm+%left_margin% yp+30 cred, 名称最大宽度:
+    Gui, 55:Add, Edit, x+5 yp-2 w105 h25 v名称列最大宽度, %名称列最大宽度%
 
     Gui, 55:Add, Text, x+20 yp+2 cred, 初始文本框内容:
     if (初始文本框内容="" || 初始文本框内容="ERROR")
@@ -319,7 +331,36 @@ Return
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
     Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
+    ;----------------------------------------------
+    Gui,55:Tab,Everything,,Exact
 
+    DetectHiddenWindows, On
+    WinGet, evpath, ProcessPath,ahk_exe everything.exe
+    if !(evpath)
+        WinGet, evpath, ProcessPath,ahk_exe everything64.exe
+    if !(evpath)
+        evpath:="后台未运行"
+    Gui, 55:Add, Text, x20 ym+%距离最上边的长度%, ev当前路径：%evpath%
+
+    Gui, 55:Add, Text, x20 yp+30, 调用ev进行搜索
+    Gui, 55:Add, DropDownList, x+5 yp-5 w%text_width% v启用ev进行搜索, %OnOffState%
+    GuiControl, Choose, 启用ev进行搜索,% 启用ev进行搜索+1
+
+    Gui, 55:Add, Text, x20 yp+40, 返回的最多结果个数:
+    Gui, 55:Add, Edit, x+5 yp-5 w105 h25 v返回的最多结果次数, %返回的最多结果次数%
+
+    Gui, 55:Add, Text, x+25 yp+2, 搜索延迟:
+    Gui, 55:Add, Edit, x+5 yp-5 w60 h25 v搜索延迟, %搜索延迟%
+    Gui, 55:Add, Text, x+5 yp+2, 毫秒
+
+    Gui, 55:Add, GroupBox, x15 ym+130 w420 h180, ev排除列表
+    Gui, 55:Add, Edit, xm yp+25 w400 h150 vev排除列表, %ev排除列表%
+
+    Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
+    Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
+    Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
+    Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
+    ;----------------------------------------------
     Gui,55:Tab,窗口设置,,Exact
     Gui, 55:Add, GroupBox, x10 ym+%距离最上边的长度% cred w420 h215, 窗口列表[自动弹出]
     Gui, 55:Add, Button, x340 ym+%距离最上边的长度% w80 g添加窗口到列表, 添加
@@ -392,6 +433,10 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-4 w%text_width% v深浅主题切换1, 跟随系统|浅色|深色
     GuiControl, Choose, 深浅主题切换1,% 深浅主题切换1+1
 
+    Gui, 55:Add, Text, x+48 yp+2, 单击运行跳转:
+    Gui, 55:Add, DropDownList, x+5 yp-2 w86 v单击运行跳转, %OnOffState%
+    GuiControl, Choose, 单击运行跳转, % 单击运行跳转+1
+
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
@@ -415,14 +460,13 @@ Return
     总次数:=自动弹出常驻窗口次数+自动弹出菜单计数+手动弹出计数
     Gui, 55:Add, Text, xm+20 yp+20, 总次数：%总次数%
 
-gosub,OnCheckBoxChange1
-gosub,OnCheckBoxChange2
-gosub,OnCheckBoxChange3
-gosub,OnCheckBoxChange4
-gosub,OnCheckBoxChange5
-gosub,OnCheckBoxChange6
-gosub,OnCheckBoxChange7
-
+    gosub,OnCheckBoxChange1
+    gosub,OnCheckBoxChange2
+    gosub,OnCheckBoxChange3
+    gosub,OnCheckBoxChange4
+    gosub,OnCheckBoxChange5
+    gosub,OnCheckBoxChange6
+    gosub,OnCheckBoxChange7
 
     GuiTitleContent := A_IsAdmin=1?"（管理员）":"（非管理员）"
     Gui,55: Show,w%Gui_width_55%,%窗口标题名%%GuiTitleContent%
@@ -478,7 +522,7 @@ Return
 
     IniWrite, %屏蔽xiaoyao程序列表%, %软件配置路径%\个人配置.ini,基础配置,屏蔽xiaoyao程序列表
 
-    IniWrite, %窗口文本行距%, %软件配置路径%\个人配置.ini,基础配置,窗口文本行距
+    IniWrite, %名称列最大宽度%, %软件配置路径%\个人配置.ini,基础配置,名称列最大宽度
     IniWrite, %隐藏软件托盘图标%, %软件配置路径%\个人配置.ini,基础配置,隐藏软件托盘图标
 
     IniWrite, %自动跳转到默认路径%, %软件配置路径%\个人配置.ini,基础配置,自动跳转到默认路径
@@ -505,6 +549,13 @@ Return
     IniWrite, %自定义_do收藏夹_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_do收藏夹_文本
     IniWrite, %自定义_粘贴_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_粘贴_文本
     IniWrite, %自定义_更多_文本%, %软件配置路径%\个人配置.ini,基础配置,自定义_更多_文本
+
+    IniWrite, %单击运行跳转%, %软件配置路径%\个人配置.ini,基础配置,单击运行跳转
+
+    IniWrite, %ev排除列表%, %软件配置路径%\个人配置.ini,基础配置,ev排除列表
+    IniWrite, %返回的最多结果次数%, %软件配置路径%\个人配置.ini,基础配置,返回的最多结果次数
+    IniWrite, %启用ev进行搜索%, %软件配置路径%\个人配置.ini,基础配置,启用ev进行搜索
+    IniWrite, %搜索延迟%, %软件配置路径%\个人配置.ini,基础配置,搜索延迟
 
     gosub, Menu_Reload
 Return
@@ -663,5 +714,5 @@ OnCheckBoxChange7:
 return
 
 添加子分类:
-run,"%A_AhkPath%" "%A_ScriptDir%\设置更多子分类常用路径.ahk"
+    run,"%A_AhkPath%" "%A_ScriptDir%\设置更多子分类常用路径.ahk"
 return

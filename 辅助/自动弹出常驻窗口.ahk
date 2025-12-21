@@ -51,13 +51,9 @@ Loop, Parse, 屏蔽xiaoyao程序列表, `,
         windows2.Push(Trim("ahk_exe " A_LoopField))
 }
 ;----------------黑名单窗列表读取-----------
-自动弹出常驻窗口次数:=Var_Read("自动弹出常驻窗口次数","0","基础配置",软件安装路径 "\个人配置.ini","是")
 
-;MsgBox, %自动弹出常驻窗口%
 if (自动弹出常驻窗口 != "开启") and (自动跳转到默认路径 != "开启")  ;如果配置文件中设置了关闭，则退出脚本
     ExitApp
-
-OnExit, 退出时运行
 
 ; 设置定时器检查窗口（每秒检查一次）
 
@@ -137,8 +133,7 @@ loop
             If DialogType{
                 WinGetClass, WindowClass, ahk_id %WinID2%   ; 获取目标窗口的类名
                 if (WindowClass = "#32770"){    ; 判断类名是否为 #32770
-                    run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2%
-                    自动弹出常驻窗口次数++
+                    run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2% 自动弹出
                     DialogType := ""
                 }
             }
@@ -213,8 +208,7 @@ ReplaceBrowseForFolder(Params*) {
         ;Else
         ;WinClose % "ahk_id" hwnd
         WinID2 := WinExist("A")
-        run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2%
-        自动弹出常驻窗口次数++
+        run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2% 自动弹出
     }
 }
 
@@ -268,8 +262,7 @@ ReplaceBrowseForFolder(Params*) {
                 result := CheckStringInFile(A_Temp "\常驻窗口关闭记录.txt",WinID2)
                 sleep, 10
                 if (result = "" or result = "FILE_ERROR"){
-                    run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2%
-                    自动弹出常驻窗口次数++
+                    run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2% 自动弹出
                 }
                 ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
             }
@@ -280,15 +273,6 @@ ReplaceBrowseForFolder(Params*) {
     }
 return
 
-退出时运行:
-    FileDelete, %A_Temp%\跳转默认打开记录.txt
-    ;如果配置不存在，新建一个默认配置
-    if not FileExist(软件安装路径 "\个人配置.ini")
-        FileCopy,%软件安装路径%\ICO\默认.ini, %软件安装路径%\个人配置.ini
-
-    IniWrite, %自动弹出常驻窗口次数%, %软件安装路径%\个人配置.ini,基础配置,自动弹出常驻窗口次数
-ExitApp
-Return
 
 RemoveToolTip:
     ToolTip
