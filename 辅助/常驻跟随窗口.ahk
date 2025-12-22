@@ -627,9 +627,7 @@ Return
     ControlGet, hctl333, Hwnd,, Edit1, ahk_id %另存为窗口id值%
 
     if (跳转方式="2"){
-
-        If (InStr(CtlList, "SHBrowseForFolder ShellNameSpace Control")
-            || CtlList = "Static1`nStatic2`nSysTreeView321`nButton1`nButton2"){    ;如果是旧式对话框
+        If (InStr(CtlList, "SHBrowseForFolder ShellNameSpace Control")){    ;如果是旧式对话框
             run,"%A_AhkPath%" "%A_ScriptDir%\外部调用跳转.ahk" %另存为窗口id值% "%跳转目标路径%"
         }Else if not(hctl333) {  ;如果没有Edit1控件
             run,"%A_AhkPath%" "%A_ScriptDir%\外部调用跳转.ahk" %另存为窗口id值% "%跳转目标路径%"
@@ -653,7 +651,6 @@ Return
     ;else if (跳转方式="6")
     ;跳转方式3(另存为窗口id值, 跳转目标路径)
     Else{   ;智能跳转方式
-
         ;if (InStr(CtlList, "DirectUIHWND2") ){   ;如果是新式对话框
         $DialogType := SmellsLikeAFileDialog(另存为窗口id值)
         If $DialogType{    ;如果是新式对话框
