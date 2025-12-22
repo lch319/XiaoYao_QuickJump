@@ -151,8 +151,8 @@ if (参数1="-常驻窗口跟随"){
         ;global 返回的最多结果次数:="150"
     }
     ;-------------------------------------------------------------------
-    gosub,将所有内容路径加入到数组2
     gosub,将所有内容路径加入到数组
+    gosub,将所有内容路径加入到数组2
 
     if (初始文本框内容="常用路径"){
         global 文本框内容写入:= 换行符转换为竖杠(移除空白行(自定义常用路径))
@@ -1027,14 +1027,18 @@ PerformSearch(value, LastText)
             if (InStr(ele,value))
                 Text .= (Text ? "|" ele : ele)
 
-        if (启用ev进行搜索 = "开启") {
+        DetectHiddenWindows, On
+        if (启用ev进行搜索 = "开启") and (WinExist("ahk_exe everything.exe") or WinExist("ahk_exe everything64.exe")) {
+            value2 :=""
             value2 := everythingSearch(ev排除列表 " " value, 返回的最多结果次数)   ;调用everything进行搜索
             value2 := StrReplace(value2, "`n", "|")
             Text := trim(value2 "|" Text, "|")
         }
+        
         if (Text !=Text2)
             更新ListView内容(Text)
         Text2:=Text
+
         ;GuiControl, , % 文本框ID, % "|" Text
     }
     Else If (!value)
