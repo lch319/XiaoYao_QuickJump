@@ -417,9 +417,9 @@ DoubleCommander_path(指定热键:="^+{F12}"){
         tempFile := tempPath . "\dc_tabs_output.txt"
         FileDelete, %tempFile%
         ;MsgBox, %指定热键%
-        
+
         ; 向后台 Double Commander 窗口发送 指定热键
-        
+
         if WinActive("ahk_class TTOTAL_CMD ahk_exe doublecmd.exe")
             Send, %指定热键%
         Else
@@ -872,7 +872,23 @@ Single(flag) { ;,返回1为重复,返回0为第一个运行
 
 ;---------------------------------------------------
 跳转方式4(DialogHwnd,SelectedPath,是否按下确定 :="否") {
-    ControlGet, hctl, Hwnd,, SysTreeView321, % "ahk_id" DialogHwnd
+    hctl:=""
+    ;ControlGet, hctl, Hwnd,, SysTreeView321, % "ahk_id" DialogHwnd
+    for _, ctrl in ["SysTreeView321", "TsShellTreeView1", "TUiDirectoryTreeView1", "TFolderTreeView1"]
+        ControlGet, hctl, Hwnd,, % ctrl, % "ahk_id" DialogHwnd
+    until hctl
+
+    If !(hctl){
+        WinGet CtlList, ControlList, % "ahk_id" DialogHwnd
+        Loop, Parse, CtlList, `n
+        {
+            if InStr(A_LoopField, "TreeView"){
+                ControlGet, hctl, Hwnd,, % A_LoopField, % "ahk_id" DialogHwnd
+                break
+            }
+        }
+    }
+
     ;MsgBox,%hctl%
     ;Clipboard := hctl
     if hctl {
@@ -2041,26 +2057,25 @@ Var_Read(rValue,defVar:="",Section名:="基础配置",Config:="个人配置.ini"
 
 ;[写入配置]
 Var_Set(vGui, var, sz,Section名:="基础配置",Config:="个人配置.ini"){
-	StringCaseSense, On
-	if(vGui!=var){
-		if(vGui=""){
-			IniDelete,%Config%,%Section名%, %sz%
-		}else{
-			IniWrite,%vGui%,%Config%, %Section名%, %sz%
-		}
-	}
-	StringCaseSense, Off
+    StringCaseSense, On
+    if(vGui!=var){
+        if(vGui=""){
+            IniDelete,%Config%,%Section名%, %sz%
+        }else{
+            IniWrite,%vGui%,%Config%, %Section名%, %sz%
+        }
+    }
+    StringCaseSense, Off
 }
 
-
 ; 暗黑模式相关函数
-Menu_Dark(d) { ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
-  static uxtheme := DllCall("GetModuleHandle", "str", "uxtheme", "ptr")
-  static SetPreferredAppMode := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 135, "ptr")
-  static FlushMenuThemes := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 136, "ptr")
+Menu_Dark(d) { ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max
+    static uxtheme := DllCall("GetModuleHandle", "str", "uxtheme", "ptr")
+    static SetPreferredAppMode := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 135, "ptr")
+    static FlushMenuThemes := DllCall("GetProcAddress", "ptr", uxtheme, "ptr", 136, "ptr")
 
-  DllCall(SetPreferredAppMode, "int", d) ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max  
-  DllCall(FlushMenuThemes)
+    DllCall(SetPreferredAppMode, "int", d) ; 0=Default  1=AllowDark  2=ForceDark  3=ForceLight  4=Max
+    DllCall(FlushMenuThemes)
 }
 
 ; 读取系统深色模式状态
@@ -2082,15 +2097,15 @@ IsDarkMode() {
 ;GetWindowRect(hwnd, x, y)
 ;GetClientSize(hwnd, w, h)
 GetClientSize(hwnd, ByRef w, ByRef h) {
-  VarSetCapacity(rect, 16)
-  , DllCall("GetClientRect", "uint", hwnd, "uint", &rect)
-  w := NumGet(rect, 8, "int")
-  , h := NumGet(rect, 12, "int")
+    VarSetCapacity(rect, 16)
+        , DllCall("GetClientRect", "uint", hwnd, "uint", &rect)
+    w := NumGet(rect, 8, "int")
+        , h := NumGet(rect, 12, "int")
 }
 GetWindowRect(hwnd, ByRef x, ByRef y) {
-  VarSetCapacity(rect, 16, 0)
-  , DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", &rect)
-  x := NumGet(rect, 0, "int")
-  y := NumGet(rect, 4, "int")
+    VarSetCapacity(rect, 16, 0)
+        , DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", &rect)
+    x := NumGet(rect, 0, "int")
+    y := NumGet(rect, 4, "int")
 }
 ;获取窗口大小函数--------------------------------------
