@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.5.3"
+窗口标题名:="XiaoYao_快速跳转v4.5.5"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -68,6 +68,8 @@ Return
         是否加载图标:=Var_Read("是否加载图标","开启","基础配置",软件配置路径 "\个人配置.ini","是")
         给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",软件配置路径 "\个人配置.ini","是")
         常用路径最多显示数量:=Var_Read("常用路径最多显示数量","9","基础配置",软件配置路径 "\个人配置.ini","是")
+        自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件配置路径 "\个人配置.ini","否")
+
 
         默认常驻窗口窗口列表:="
 (
@@ -143,6 +145,8 @@ Return
     历史路径设为默认路径:= 历史路径设为默认路径="关闭"?0:1
 
     失效路径显示设置:= 失效路径显示设置="关闭"?0:1
+
+    自动跳转到文件管理器路径:= 自动跳转到文件管理器路径="关闭"?0:1
 
     替换双斜杠单反斜杠双引号:= 替换双斜杠单反斜杠双引号="关闭"?0:1
 
@@ -450,6 +454,10 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w86 v不存在时新建, %OnOffState%
     GuiControl, Choose, 不存在时新建, % 不存在时新建+1
 
+    Gui, 55:Add, Text, xm+%left_margin% yp+35 , 自动跳到文件管理器路径(开启后跳转默认路径将失效):
+    Gui, 55:Add, DropDownList, x+7 yp-2 w%text_width% v自动跳转到文件管理器路径, %OnOffState%
+    GuiControl, Choose, 自动跳转到文件管理器路径, % 自动跳转到文件管理器路径+1
+
 
     Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
@@ -518,6 +526,7 @@ Return
     IniWrite, %窗口字体大小2%, %软件配置路径%\个人配置.ini,基础配置,窗口字体大小
     IniWrite, %窗口透明度2%, %软件配置路径%\个人配置.ini,基础配置,窗口透明度
     IniWrite, %失效路径显示设置%, %软件配置路径%\个人配置.ini,基础配置,失效路径显示设置
+    IniWrite, %自动跳转到文件管理器路径%, %软件配置路径%\个人配置.ini,基础配置,自动跳转到文件管理器路径
 
     IniWrite, %文件夹名显示在前%, %软件配置路径%\个人配置.ini,基础配置,文件夹名显示在前
 
@@ -734,3 +743,10 @@ return
 添加子分类:
     run,"%A_AhkPath%" "%A_ScriptDir%\设置更多子分类常用路径.ahk"
 return
+
+
+#If WinActive("ahk_id" Gui_winID)
+~Escape::
+    ExitApp
+return
+#If

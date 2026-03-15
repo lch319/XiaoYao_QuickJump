@@ -657,13 +657,15 @@ TotalCommander_path(指定栏:="1"){
         Clipboard := ""
         if (指定栏="1" or 指定栏="0"){
             SendMessage 1075, %cm_CopySrcPathToClip%, 0, , ahk_class TTOTAL_CMD ahk_exe i)totalcmd.*\.exe
-            folder:=Rtrim(RegExReplace(clipboard,"S)^\\\\(?!file)"),"\")
+            ;folder:=Rtrim(RegExReplace(clipboard,"S)^\\\\(?!file)"),"\")
+            folder:=RegExReplace(clipboard,"S)^\\\\(?!file)")
             If (ErrorLevel = 0 && folder)
                 tc路径.= folder "`n"
         }
         if (指定栏="2" or 指定栏="0"){
             SendMessage 1075, %cm_CopyTrgPathToClip%, 0, , ahk_class TTOTAL_CMD ahk_exe i)totalcmd.*\.exe
-            folder:=Rtrim(RegExReplace(clipboard,"S)^\\\\(?!file)"),"\")
+            ;folder:=Rtrim(RegExReplace(clipboard,"S)^\\\\(?!file)"),"\")
+            folder:=RegExReplace(clipboard,"S)^\\\\(?!file)")
             If (ErrorLevel = 0 && folder)
                 tc路径.= folder
         }

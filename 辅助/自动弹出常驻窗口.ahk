@@ -16,6 +16,8 @@ SetTitleMatchMode, 2  ; 使用部分匹配窗口标题
 默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","是"))
 历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
 屏蔽xiaoyao程序列表:=Var_Read("屏蔽xiaoyao程序列表","War3.exe,dota2.exe,League of Legends.exe","基础配置",软件安装路径 "\个人配置.ini","是")
+自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
+给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",软件安装路径 "\个人配置.ini","否")
 
 默认常驻窗口窗口列表:="
 (
@@ -52,12 +54,15 @@ Loop, Parse, 屏蔽xiaoyao程序列表, `,
 }
 ;----------------黑名单窗列表读取-----------
 
-if (自动弹出常驻窗口 != "开启") and (自动跳转到默认路径 != "开启")  ;如果配置文件中设置了关闭，则退出脚本
+if (自动弹出常驻窗口 != "开启") and (自动跳转到默认路径 != "开启") and (自动跳转到文件管理器路径 != "开启") ;如果配置文件中设置了关闭，则退出脚本
     ExitApp
 
 ; 设置定时器检查窗口（每秒检查一次）
-
 SetTimer, 检查窗口列表, 10
+
+; 脚本启动时注册系统钩子
+DllCall("RegisterShellHookWindow", "UInt", A_ScriptHwnd)
+OnMessage(DllCall("RegisterWindowMessage", "Str", "SHELLHOOK"), "WinActivated")
 
 ReplaceBrowseForFolder(true)
 
@@ -91,13 +96,13 @@ loop
         自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
         历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
         默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","否"))
+        自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
+        
 
-        if (自动跳转到默认路径 = "开启"){
-
+        if (自动跳转到默认路径 = "开启") and (自动跳转到文件管理器路径 != "开启"){
             result2 := CheckStringInFile(A_Temp "\跳转默认打开记录.txt",WinID2)
             sleep, 10
             if (result2 = "" or result2 = "FILE_ERROR"){
-
                 if (历史路径设为默认路径 = "开启"){
                     FileRead, 全部历史跳转路径, %软件安装路径%\ICO\历史跳转.ini
                     if (全部历史跳转路径 !=""){
@@ -112,10 +117,8 @@ loop
                         }
                     }
                 }
-
                 run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -跳转事件 %WinID2% "%默认路径%"
                 FileAppend,%WinID2%`n,%A_Temp%\跳转默认打开记录.txt
-
             }
 
         }
@@ -142,6 +145,10 @@ loop
     }
     WinWaitNotActive, ahk_class #32770
     sleep, 100
+
+    if not WinExist("ahk_id " WinID2)
+        PreviousWin := ""
+
     ;Menu ContextMenu, Delete
     WinID2 := ""
     DialogType :=""
@@ -230,8 +237,10 @@ ReplaceBrowseForFolder(Params*) {
             自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
             历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
             默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","否"))
+            自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
 
-            if (自动跳转到默认路径 = "开启"){
+
+            if (自动跳转到默认路径 = "开启") and (自动跳转到文件管理器路径 != "开启"){
 
                 result2 := CheckStringInFile(A_Temp "\跳转默认打开记录.txt",WinID2)
                 sleep, 10
@@ -273,7 +282,16 @@ ReplaceBrowseForFolder(Params*) {
     }
 return
 
-
 RemoveToolTip:
     ToolTip
 return
+
+; 每当活动窗口变化时，此函数会被自动调用
+WinActivated(wParam, lParam) {
+    Global PreviousWin, ActiveWin
+    ; wParam为4或32772表示窗口被激活
+    If (wParam = 4 OR wParam = 32772) {
+        PreviousWin := ActiveWin  ; 将旧的活动窗口记录为“上一个”
+        ActiveWin := "ahk_id " lParam  ; 记录新的活动窗口
+    }
+}

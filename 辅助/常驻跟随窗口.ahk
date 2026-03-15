@@ -217,7 +217,7 @@ Return
 
     global Gui_winID
     ;Gui, +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
-    Gui, +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
+    Gui, +Resize +ToolWindow +HwndGui_winID +AlwaysOnTop
     ;Clipboard:= Gui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
@@ -305,6 +305,21 @@ Return
 
     Gui, Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
 
+; === 设置所有者关系 ===
+hParent := 参数2
+Gui +Owner%hParent% -AlwaysOnTop  ; 关键：建立拥有关系，使 GUI 随父窗口隐藏/显示
+
+; === 添加消息监听，实现最小化同步和激活置顶 ===
+; 监听父窗口的 WM_SIZE 消息（窗口大小变化，包括最小化/还原）
+OnMessage(0x0005, "OnParentSize")   ; WM_SIZE = 0x0005
+; 监听父窗口的 WM_ACTIVATE 消息（激活状态变化）
+OnMessage(0x0006, "OnParentActivate") ; WM_ACTIVATE = 0x0006
+
+; 保存 GUI 句柄供回调使用
+global hGui := Gui_winID
+global hParent := hParent
+
+    
     SetTimer, ExitScript, Off   ;关闭5秒后的退出操作
 
     If (参数3="自动弹出"){
@@ -320,7 +335,7 @@ Return
     ;MsgBox, %文本框内容写入%
     更新ListView内容(文本框内容写入)
 
-    ControlFocus,Edit1,%窗口标题名称% ahk_class AutoHotkeyGUI
+    ;ControlFocus,Edit1,%窗口标题名称% ahk_class AutoHotkeyGUI
     OnMessage(0x0101, "searchbox")
 
     if (悬停提示状态="1")
@@ -330,13 +345,7 @@ Return
 ;[跟随当前窗口]-------------------------------------
 跟随当前窗口:
     global menu:= "searchbox"
-    global MinMax变量:="最小化"
-    global 是否是第一次激活切换:="是"
-    global 是否是第一次非激活切换:="是"
-    global 是否是第一次最大化切换:="是"
-    global 是否是第一次最小化切换:="是"
-    global 是否是第一次中化切换:="是"
-    global 是否是第一次置顶:="是"
+
     global Gs_tcWinID := 参数2  ; 获取当前活动窗口的ID
     global newX2:="",newY2:=""
     if (Gs_tcWinID=Gui_winID ) or (WinActive("ahk_class Progman")){
@@ -523,29 +532,42 @@ Return
     自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
     历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
     默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","是"))
+    自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
 
-    if (自动跳转到默认路径="关闭")
+    if (自动跳转到文件管理器路径="关闭")
+        Menu, searchbox, Add, 开启 自动跳转到文件管理器路径, 开启自动跳转到文件管理器路径
+    if (自动跳转到文件管理器路径="开启"){
+        Menu, searchbox, Add, 自动跳转到文件管理器路径, 关闭自动跳转到文件管理器路径
+        Menu, searchbox, Icon, 自动跳转到文件管理器路径, shell32.dll, 145
+    }
+
+    if (自动跳转到默认路径="关闭"){
         Menu, searchbox, Add, 开启 自动跳默认路径, 开启自动跳默认路径
+            if (自动跳转到文件管理器路径="开启")
+                Menu, searchbox, Disable, 开启 自动跳默认路径
+        }
     if (自动跳转到默认路径="开启"){
         Menu, searchbox, Add, 自动跳默认路径, 关闭自动跳默认路径
         Menu, searchbox, Icon, 自动跳默认路径, shell32.dll, 145
+            if (自动跳转到文件管理器路径="开启")
+                Menu, searchbox, Disable, 自动跳默认路径
     }
 
     if (历史路径设为默认路径="关闭"){
         Menu, searchbox, Add, 开启 历史路径设为默认, 开启历史路径设为默认
-        if (自动跳转到默认路径="关闭")
+        if (自动跳转到默认路径="关闭") or (自动跳转到文件管理器路径="开启")
             Menu, searchbox, Disable, 开启 历史路径设为默认
     }
     if (历史路径设为默认路径="开启"){
         Menu, searchbox, Add, 历史路径设为默认, 关闭历史路径设为默认
         Menu, searchbox, Icon, 历史路径设为默认, shell32.dll, 145
-        if (自动跳转到默认路径="关闭")
+        if (自动跳转到默认路径="关闭") or (自动跳转到文件管理器路径="开启")
             Menu, searchbox, Disable, 历史路径设为默认
     }
 
     Menu, searchbox, Add, 设置 默认路径, 设置默认路径
     Menu, searchbox, Add, 查看 当前自动跳转路径, 查看默认路径
-    if (自动跳转到默认路径="关闭") or (自动跳转到默认路径="开启" and 历史路径设为默认路径="开启"){
+    if (自动跳转到默认路径="关闭") or (自动跳转到默认路径="开启" and 历史路径设为默认路径="开启") or (自动跳转到文件管理器路径="开启"){
         Menu, searchbox, Disable, 设置 默认路径
         Menu, searchbox, Disable, 查看 当前自动跳转路径
     }
@@ -675,6 +697,7 @@ Return
             run,"%A_AhkPath%" "%A_ScriptDir%\外部调用跳转.ahk" %另存为窗口id值% "%跳转目标路径%"
 
     }
+    WinActivate,ahk_id %Gui_winID%
 Return
 
 父窗口关闭运行事件:
@@ -756,20 +779,15 @@ return
         }
     Return
 
+    Enter::
+        ToolTip
+        Gosub, 打开跳转事件
+    Return
+
 #If
 
 ;[跟随父窗口移动]═════════════════════════════════════════════════
-;需要传递的全局变量
-;global menu:= "窗口menu名"
-;global MinMax变量:="最小化"
-;global 是否是第一次激活切换:="是"
-;global 是否是第一次非激活切换:="是"
-;global 是否是第一次最大化切换:="是"
-;global 是否是第一次最小化切换:="是"
-;global 是否是第一次中化切换:="是"
-;global 是否是第一次置顶:="是"
-;global Gs_tcWinID := Gs_tcWinID2  ; 父窗口ID
-;global newX2:="",newY2:=""
+
 
 FollowParentWindow:
     menu名:= menu
@@ -780,75 +798,14 @@ FollowParentWindow:
         ExitApp
         return
     }
-    ;判断窗口激活与未激活的切换..........................................
-    if WinActive("ahk_id " Gs_tcWinID){
-        if (是否是第一次激活切换="是"){
-            ;MsgBox, 1
-            是否是第一次激活切换:="否"
-            是否是第一次非激活切换:="是"
-            Gui,+AlwaysOnTop
-        }
-        WinGet, ExStyle, ExStyle, ahk_id %Gs_tcWinID% ; 检查窗口是否已经置顶
-        if (ExStyle & 0x8)
-            Gui,+AlwaysOnTop
-    }Else{
-        if (是否是第一次非激活切换="是"){
-            ;MsgBox, 2
-            是否是第一次激活切换:="是"
-            是否是第一次非激活切换:="否"
-            WinGet, ExStyle, ExStyle, ahk_id %Gs_tcWinID% ; 检查窗口是否已经置顶
-            if (ExStyle & 0x8){ ; 如果窗口已经置顶
-                Gui,+AlwaysOnTop
-            }Else{
-                Gui,-AlwaysOnTop
-                ;MsgBox, 4
-            }
-        }
-    }
-    ;.....................................................................
+
     WinGet, active_MinMax, MinMax, ahk_id %Gs_tcWinID%
     WinGetPos, newX, newY, newW, newH, ahk_id %Gs_tcWinID%
 
-    ;判断最大化到最小化的切换..........................................
-
-    if (active_MinMax="-1"){
-        if (是否是第一次最小化切换="是"){
-            是否是第一次最大化切换:="是"
-            是否是第一次最小化切换:="否"
-            是否是第一次中化切换:="是"
-            ;WinGetPos, guiX3, guiY3, guiW3, guiH3, ahk_id %Gui_winID%
-            Gui,hide
-            ;print("最小化" guiX3 "`n" guiY3)
-        }
-        Return
-    }Else if (active_MinMax="1"){
-        if (是否是第一次最大化切换="是"){
-            是否是第一次最大化切换:="否"
-            是否是第一次最小化切换:="是"
-            是否是第一次中化切换:="是"
-            ;MsgBox, 2
-            Gui,Show,NoActivate
-            ;WinMove, ahk_id %Gui_winID%,, %guiX3%, %guiY3%
-            Gui,+AlwaysOnTop
-            WinActivate, ahk_id %Gs_tcWinID%
-            ;print("最大化" guiX3 "`n" guiY3)
-        } ;Else
-        ;Gui,+AlwaysOnTop
-        Return
-    }Else{
-        if (是否是第一次中化切换="是"){
-            是否是第一次最大化切换:="是"
-            是否是第一次最小化切换:="是"
-            是否是第一次中化切换:="否"
-            ;MsgBox, 2
-            Gui,Show,NoActivate
-            ;WinMove, ahk_id %Gui_winID%,, %guiX3%, %guiY3%
-            Gui,+AlwaysOnTop
-            WinActivate, ahk_id %Gs_tcWinID%
-            ;print("中化" guiX3 "`n" guiY3)
-        }
-    }
-
+    ; 获取窗口状态：-1=最小化, 0=正常, 1=最大化
+    WinGet, MinMax, MinMax, ahk_id %Gs_tcWinID%
+    if (MinMax != 0)   ; 最大化或最小化时不移动
+        return
     ;..........................................
     if (newX = newX2 && newY = newY2)
         Return
@@ -935,11 +892,20 @@ return
     if (默认路径="" || 默认路径="ERROR" || !FileExist(默认路径)){
         gosub,设置默认路径
     }
-
 return
 关闭自动跳默认路径:
     IniWrite, 关闭, %软件安装路径%\个人配置.ini,基础配置,自动跳转到默认路径
 return
+
+开启自动跳转到文件管理器路径:
+    IniWrite, 开启, %软件安装路径%\个人配置.ini,基础配置,自动跳转到文件管理器路径
+return
+关闭自动跳转到文件管理器路径:
+    IniWrite, 关闭, %软件安装路径%\个人配置.ini,基础配置,自动跳转到文件管理器路径
+return
+
+
+
 开启历史路径设为默认:
     IniWrite, 开启, %软件安装路径%\个人配置.ini,基础配置,历史路径设为默认路径
 return
@@ -1334,7 +1300,11 @@ class everything_xiaoyao
             Continue
         if (文件夹名显示在前="开启"){
             SplitPath, A_LoopField, name
+            if (name != "")
             LV_Add("",name, A_LoopField)
+            Else
+            LV_Add("",A_LoopField,A_LoopField)
+
         }Else
             LV_Add("",A_LoopField)
     }
@@ -1464,3 +1434,39 @@ DisplayToolTip:
     ToolTip, % "名称: " Col1 "`n路径: " Col2 "`n修改时间: " OutTime
 return
 
+; === 回调函数：父窗口大小变化 ===
+OnParentSize(wParam, lParam, msg, hwnd)
+{
+    global hGui, hParent
+    if (hwnd != hParent)   ; 只处理目标父窗口的消息
+        return
+
+    if (wParam = 1)        ; SC_MINIMIZE 对应的 wParam 实际上是 1？实际 SC_MINIMIZE 是系统命令，WM_SIZE 的 wParam 表示最小化/最大化/还原：1 最小化，2 最大化，0 还原
+    {
+        ; 父窗口最小化 → 最小化 GUI
+        WinMinimize, ahk_id %hGui%
+    }
+    else if (wParam = 0)   ; 父窗口还原（从最小化还原）
+    {
+        ; 还原 GUI（但要注意如果 GUI 原本是正常状态，需避免反复还原）
+        WinRestore, ahk_id %hGui%
+        ; 可选：将 GUI 置顶到父窗口之上（但不要抢夺焦点）
+        WinSet, Top, , ahk_id %hGui%
+    }
+    ; 其他情况（最大化/还原）可按需处理
+}
+
+; === 回调函数：父窗口激活状态变化 ===
+OnParentActivate(wParam, lParam, msg, hwnd)
+{
+    global hGui, hParent
+    if (hwnd != hParent)
+        return
+
+    if (wParam & 0xFFFF)   ; 低16位非0表示正在激活（如点击标题栏）
+    {
+        ; 父窗口被激活 → 将 GUI 置顶但不激活
+        WinSet, Top, , ahk_id %hGui%
+    }
+    ; 若父窗口失去激活，可不做处理
+}
