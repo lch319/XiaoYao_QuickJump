@@ -112,6 +112,7 @@ if (参数1="-常驻窗口跟随"){
         global 悬停提示状态:=Var_Read("悬停提示状态","1","基础配置",软件安装路径 "\个人配置.ini","是")
         global 延迟悬停显示:=Var_Read("延迟悬停显示","300","基础配置",软件安装路径 "\个人配置.ini","是")
         global 不存在时新建:=Var_Read("不存在时新建","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
+        global 隐藏标题栏:=Var_Read("隐藏标题栏","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
 
         loop 5
         {
@@ -218,6 +219,10 @@ Return
     global Gui_winID
     ;Gui, +Resize +AlwaysOnTop +ToolWindow +HwndGui_winID
     Gui, +Resize +ToolWindow +HwndGui_winID +AlwaysOnTop
+
+    if (隐藏标题栏 = "开启")
+        Gui, -Caption
+
     ;Clipboard:= Gui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
@@ -593,6 +598,7 @@ Return
     Menu, searchbox, Add, 导出日志, 导出日志
     Menu, searchbox, Add, 设置(&D), 设置可视化
     Menu, searchbox, Add, 重启(&R), Menu_Reload
+    Menu, searchbox, Add, 关闭(&G), GuiClose
     Menu, searchbox, Add, 退出(&E), Menu_Exit
     Menu, searchbox, Show
     Menu, searchbox, DeleteAll
@@ -691,7 +697,7 @@ Return
     Else{   ;智能跳转方式
         ;if (InStr(CtlList, "DirectUIHWND2") ){   
         $DialogType := SmellsLikeAFileDialog(另存为窗口id值)
-        If $DialogType{    ;如果是新式对话框
+        If ($DialogType="SYSLISTVIEW" or $DialogType="GENERAL"){    ;如果是新式对话框
             FeedDialog%$DialogType%(另存为窗口id值, 跳转目标路径)
         }Else
             run,"%A_AhkPath%" "%A_ScriptDir%\外部调用跳转.ahk" %另存为窗口id值% "%跳转目标路径%"

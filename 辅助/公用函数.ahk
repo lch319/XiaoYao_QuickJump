@@ -308,7 +308,9 @@ ChangePath(_dir,this_id){
 ;-------------------------------------------
 ;只有在下列情况下，才将此对话框视为可能的文件对话框
 SmellsLikeAFileDialog(_thisID ){
+
     WinGet, _controlList, ControlList, ahk_id %_thisID%
+
     Loop, Parse, _controlList, `n
     {
         If ( A_LoopField = "SysListView321" )
@@ -319,11 +321,17 @@ SmellsLikeAFileDialog(_thisID ){
             _DirectUIHWND1 := 1
         If ( A_LoopField = "Edit1" )
             _Edit1 := 1
+        If ( A_LoopField = "SHELLDLL_DefView1" )
+            _SHELLDLL_DefView1 := 1
+        If ( A_LoopField = "SysHeader321" )
+            _SysHeader321 := 1
     }
     If ( _DirectUIHWND1 and _ToolbarWindow321 and _Edit1 )
         Return "GENERAL"
-    Else If ( _SysListView321 and _ToolbarWindow321 and _Edit1 )
+    Else If ( _SysListView321 and _ToolbarWindow321 and _Edit1 ) or ( _SysListView321 and _SHELLDLL_DefView1 and _SysHeader321 and _Edit1)
         Return "SYSLISTVIEW"
+    Else If (InStr(_controlList, "SHBrowseForFolder ShellNameSpace Control"))
+        Return "BROWSEFOLDER"
     else
         Return FALSE
 }
@@ -2126,4 +2134,45 @@ runtry(str,是否新建:="关闭"){
     } catch {
         ttip("无法打开该路径: " str,3000)
     }
+}
+
+检测窗口列表的窗口是否激活(list123){
+    Loop, parse, list123, `n, `r
+    {
+        SetTitleMatchMode RegEx
+        if WinActive(A_LoopField)
+            return true
+    }
+    return false
+}
+
+;-------------------------------------------
+
+; 函数：检查文件中是否存在包含目标字符串的行
+; 参数：
+;   filePath - 文本文件路径
+;   targetString - 要查找的字符串
+; 返回值：
+;   成功找到：返回匹配行的完整内容
+;   未找到：返回空字符串 ""
+;   文件读取错误：返回 "FILE_ERROR"
+CheckStringInFile(filePath, targetString) {
+    ; 尝试读取文件
+    FileRead, fileContent, %filePath%
+    ;MsgBox, %fileContent%
+    if (ErrorLevel)  ; 文件读取失败
+        return "FILE_ERROR"
+
+    ; 逐行检查
+    foundLine := ""
+    Loop, Parse, fileContent, `n, `r  ; 处理不同换行符
+    {
+        if InStr(A_LoopField, targetString)
+        {
+            foundLine := A_LoopField
+            break  ; 找到后立即退出循环
+        }
+    }
+
+    return foundLine
 }

@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.5.5"
+软件版本号:="4.5.6"
 
 ;如果配置不存在，新建一个默认配置
 if not FileExist(A_ScriptDir "\个人配置.ini")
@@ -224,9 +224,10 @@ If (自动弹出菜单="开启" or 自动跳转到文件管理器路径="开启"
     SetTitleMatchMode, 2  ; 使用部分匹配窗口标题
     SetTimer, 检查窗口列表, 10
 
+    /*
+    if (自动弹出菜单="开启")
     ReplaceBrowseForFolder(true)
 
-    /*
     loop
     {
         WinWaitActive, ahk_class #32770
@@ -839,7 +840,12 @@ return
                     if (FolderPath222 !=""){
                         Sleep, 100
                         ;ToolTip, %FolderPath222%
-                        run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -跳转事件 %WinID2% "%FolderPath222%"
+                        DialogType := SmellsLikeAFileDialog(WinID2)
+                        If DialogType{
+                            run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -跳转事件 %WinID2% "%FolderPath222%"
+                            FileAppend,%WinID2%`n,%A_Temp%\跳转默认打开记录.txt
+                            DialogType := ""
+                        }
                     }
 
                 }
@@ -848,16 +854,20 @@ return
                     If (自动跳转到文件管理器路径 = "开启")
                         Sleep, 200
                     WinID2 := WinExist(winTitle)
-                    sleep, %延迟自动弹出时间%
-                    Gosub, ShowMenu
-                    Gosub,自动弹出菜单计数
-                    ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
+                    DialogType := SmellsLikeAFileDialog(WinID2)
+                    If DialogType{
+                        sleep, %延迟自动弹出时间%
+                        Gosub, ShowMenu
+                        Gosub,自动弹出菜单计数
+                        ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
+                        DialogType := ""
+                    }
                 }
 
                 WinWaitNotActive,% winTitle
                 ;break  ; 每次只处理一个出现的窗口
             }
-            全局变量11 :="1"
+            global 全局变量11 :="1"
             Return
         }
     }
@@ -882,7 +892,12 @@ return
                 if (FolderPath222 !=""){
                     Sleep, 100
                     ;ToolTip, %FolderPath222%
-                    run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -跳转事件 %WinID2% "%FolderPath222%"
+                    DialogType := SmellsLikeAFileDialog(WinID2)
+                    If DialogType{
+                        run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -跳转事件 %WinID2% "%FolderPath222%"
+                        FileAppend,%WinID2%`n,%A_Temp%\跳转默认打开记录.txt
+                        DialogType := ""
+                    }
                 }
 
             }
@@ -891,10 +906,14 @@ return
                 If (自动跳转到文件管理器路径 = "开启")
                     Sleep, 200
                 WinID2 := WinExist("ahk_class #32770")
-                sleep, %延迟自动弹出时间%
-                Gosub, ShowMenu
-                Gosub,自动弹出菜单计数
-                ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
+                DialogType := SmellsLikeAFileDialog(WinID2)
+                If DialogType{
+                    sleep, %延迟自动弹出时间%
+                    Gosub, ShowMenu
+                    Gosub,自动弹出菜单计数
+                    ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
+                    DialogType := ""
+                }
             }
 
             WinWaitNotActive, ahk_class #32770
@@ -904,44 +923,13 @@ return
         Return
     }
     窗口列表123:="常用路径跳转 ahk_class AutoHotkeyGUI ahk_exe XiaoYao_快速跳转.exe`nahk_class #32770`n" . 常驻窗口窗口列表
+    文件管理器窗口列表:="ahk_class i)^ATL: ahk_exe Q-Dir.*\.exe`nahk_class TTOTAL_CMD ahk_exe i)totalcmd.*\.exe`nahk_exe explorer.exe ahk_class CabinetWClass`nahk_class ThunderRT6FormDC ahk_exe XYplorer.exe`nahk_class TTOTAL_CMD ahk_exe doublecmd.exe`nahk_exe dopus.exe"
+    result2 := CheckStringInFile(A_Temp "\跳转默认打开记录.txt",WinID2)
 
-    if not 检测窗口列表的窗口是否激活(窗口列表123)
+    if ((not 检测窗口列表的窗口是否激活(窗口列表123)) and (检测窗口列表的窗口是否激活(文件管理器窗口列表))) or (result2 = "" or result2 = "FILE_ERROR")
         全局变量11 :="0"
 return
 
-ReplaceBrowseForFolder(Params*) {
-    Static EVENT_OBJECT_SHOW := 0x8002
-        ,      OBJID_WINDOW := 0
-        ,      INDEXID_CONTAINER := 0
-        ,      hHook := 0
-    If IsObject(Params) {
-        Return hHook := Params[1]
-            ? DllCall("SetWinEventHook", "Int", EVENT_OBJECT_SHOW
-            , "Int", EVENT_OBJECT_SHOW, "Ptr", 0, "Ptr"
-            ,  RegisterCallback(A_ThisFunc)
-            , "Int", 0, "Int", 0, "Int", 0, "Ptr")
-            : DllCall("UnhookWinEvent", "Ptr", hHook), DllCall("CoUninitialize")
-    } Else {
-        hwnd := NumGet(params+0, 2*A_PtrSize, "Ptr")
-        idObject := NumGet(params+0, 3*A_PtrSize, "Int")
-        idChild := NumGet(params+0, 4*A_PtrSize, "Int")
-        If (idObject != OBJID_WINDOW || idChild != INDEXID_CONTAINER)
-            Return
-        WinGetClass wndClass, % "ahk_id" hwnd
-        If (wndClass != "#32770")
-            Return
-        WinGet CtlList, ControlList, % "ahk_id" hwnd
-        If !(  InStr(CtlList, "SHBrowseForFolder ShellNameSpace Control")
-            || CtlList = "Static1`nStatic2`nSysTreeView321`nButton1`nButton2" )
-            Return
-        ;If (SelectedPath := SelectFolderEx(, , hwnd))
-        ;SetPathForBrowseForFolder(SelectedPath, hwnd)
-        ;Else
-        ;WinClose % "ahk_id" hwnd
-        Gosub, ShowMenu
-        Gosub,自动弹出菜单计数
-    }
-}
 
 自动弹出菜单计数:
     ;如果配置不存在，新建一个默认配置
@@ -1079,11 +1067,3 @@ Label_AdminLaunch: ; 管理员启动
     }
 return
 
-检测窗口列表的窗口是否激活(list123){
-    Loop, parse, list123, `n, `r
-    {
-        if WinActive(A_LoopField)
-            return true
-    }
-    return false
-}

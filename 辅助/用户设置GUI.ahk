@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.5.5"
+窗口标题名:="XiaoYao_快速跳转v4.5.6"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -68,7 +68,8 @@ Return
         是否加载图标:=Var_Read("是否加载图标","开启","基础配置",软件配置路径 "\个人配置.ini","是")
         给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",软件配置路径 "\个人配置.ini","是")
         常用路径最多显示数量:=Var_Read("常用路径最多显示数量","9","基础配置",软件配置路径 "\个人配置.ini","是")
-        自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件配置路径 "\个人配置.ini","否")
+        自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
+        隐藏标题栏:=Var_Read("隐藏标题栏","关闭","基础配置",软件配置路径 "\个人配置.ini","否")
 
 
         默认常驻窗口窗口列表:="
@@ -147,6 +148,7 @@ Return
     失效路径显示设置:= 失效路径显示设置="关闭"?0:1
 
     自动跳转到文件管理器路径:= 自动跳转到文件管理器路径="关闭"?0:1
+    隐藏标题栏:= 隐藏标题栏="关闭"?0:1
 
     替换双斜杠单反斜杠双引号:= 替换双斜杠单反斜杠双引号="关闭"?0:1
 
@@ -246,7 +248,7 @@ Return
 
     Gui, 55:Add, Edit, xm+%left_margin% yp+27 w400 r8 HScroll -Wrap v常用路径1, %常用路径1%
 
-    Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
+    Gui, 55:Add, Button, Default w75 x95 y620 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
     Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
@@ -283,8 +285,8 @@ Return
     Gui, 55:Add, Text, xm+%left_margin% yp+30, 窗口初始坐标y：
     Gui, 55:Add, Edit, x+5 yp-2 w200 h25 v窗口初始坐标y2, %窗口初始坐标y%
 
-    Gui, 55:Add, GroupBox, xm y+20 w200 h255, 【更多】设置
-    Gui, 55:Add, GroupBox, x+10 yp w200 h255, 【顶部按钮显示/隐藏】设置
+    Gui, 55:Add, GroupBox, xm y+20 w200 h285, 【更多】设置
+    Gui, 55:Add, GroupBox, x+10 yp w200 h285, 【顶部按钮显示/隐藏】设置
 
     Gui, 55:Add, Text, xm+%left_margin% yp+25, 初始宽度：
     Gui, 55:Add, Edit, x+5 yp-2 w120 h25 v窗口初始宽度2, %窗口初始宽度%
@@ -336,7 +338,14 @@ Return
         初始文本框内容:="当前打开"
     Gui, 55:Add, ComboBox, x+5 yp-2 w99 v初始文本框内容, %初始文本框内容%||当前打开|常用路径|历史打开|全部路径|do收藏夹
 
-    Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
+    Gui, 55:Add, Text, xm+%left_margin% yp+30 , 隐藏标题栏:
+    Gui, 55:Add, DropDownList, x+7 yp-2 w115 v隐藏标题栏, %OnOffState%
+    GuiControl, Choose, 隐藏标题栏, % 隐藏标题栏+1
+
+
+
+
+    Gui, 55:Add, Button, Default w75 x95 y620 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
     Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
@@ -365,7 +374,7 @@ Return
     Gui, 55:Add, GroupBox, x15 ym+130 w420 h180, ev排除列表
     Gui, 55:Add, Edit, xm yp+25 w400 h150 vev排除列表, %ev排除列表%
 
-    Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
+    Gui, 55:Add, Button, Default w75 x95 y620 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
     Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
@@ -384,7 +393,7 @@ Return
     Gui, 55:Add, GroupBox, x10 ym+475 cred w420 h100, 屏蔽xiaoyao程序列表(英文逗号隔开)
     Gui, 55:Add, Edit, xm yp+25 w400 h70 v屏蔽xiaoyao程序列表, %屏蔽xiaoyao程序列表%
 
-    Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
+    Gui, 55:Add, Button, Default w75 x95 y620 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
     Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
@@ -459,7 +468,7 @@ Return
     GuiControl, Choose, 自动跳转到文件管理器路径, % 自动跳转到文件管理器路径+1
 
 
-    Gui, 55:Add, Button, Default w75 x95 y600 G设置ok, 确定
+    Gui, 55:Add, Button, Default w75 x95 y620 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
     Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
@@ -527,6 +536,7 @@ Return
     IniWrite, %窗口透明度2%, %软件配置路径%\个人配置.ini,基础配置,窗口透明度
     IniWrite, %失效路径显示设置%, %软件配置路径%\个人配置.ini,基础配置,失效路径显示设置
     IniWrite, %自动跳转到文件管理器路径%, %软件配置路径%\个人配置.ini,基础配置,自动跳转到文件管理器路径
+    IniWrite, %隐藏标题栏%, %软件配置路径%\个人配置.ini,基础配置,隐藏标题栏
 
     IniWrite, %文件夹名显示在前%, %软件配置路径%\个人配置.ini,基础配置,文件夹名显示在前
 
