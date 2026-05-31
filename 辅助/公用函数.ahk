@@ -146,6 +146,7 @@ FeedDialogGENERAL( _thisID, _thisFOLDER ){
         {
             SendInput ^l
             sleep 100
+            SendInput, {Shift up}{Ctrl Up}{Alt up}
 
             ;	Check and insert folder
             ControlGetFocus, _ctrlFocus,A
@@ -428,9 +429,10 @@ DoubleCommander_path(指定热键:="^+{F12}"){
 
         ; 向后台 Double Commander 窗口发送 指定热键
 
-        if WinActive("ahk_class TTOTAL_CMD ahk_exe doublecmd.exe")
+        if WinActive("ahk_class TTOTAL_CMD ahk_exe doublecmd.exe"){
             Send, %指定热键%
-        Else
+            SendInput, {Shift up}{Ctrl Up}{Alt up}
+        }Else
             ControlSend, , %指定热键%, ahk_class TTOTAL_CMD ahk_exe doublecmd.exe
 
         Loop
@@ -465,7 +467,8 @@ DoubleCommander_path(指定热键:="^+{F12}"){
     }
 }
 ;--------获取所有do窗口标签页的路径---------------------------------------
-DirectoryOpusgetinfo(){
+; mode参数: 0=获取所有(活动置顶), 1=仅获取当前活动标签(1行), 2=仅获取双栏活动标签(最多2行)
+DirectoryOpusgetinfo(mode := 0){
     do所以标签路径:=""
     DetectHiddenWindows, on
     if WinExist("ahk_exe dopus.exe"){
@@ -475,40 +478,67 @@ DirectoryOpusgetinfo(){
 
         if (A_IsAdmin){
             RunWaitWithTimeout("""" dir "\dopusrt.exe"" /info " A_Temp "\pathlist.txt`,paths","100")
-            ;MsgBox, 1
         }Else
             RunWait,"%dir%\dopusrt.exe" /info %A_Temp%\pathlist.txt`,paths
 
         if FileExist(A_Temp "\pathlist.txt"){   ;如果生成了文件
-            ;MsgBox, 1
             FileRead, doinfo信息列表, %A_Temp%\pathlist.txt
-            正则:=">([^<]+)<\/path>"
-            Loop, parse, doinfo信息列表 , `n
+            
+            正则:="<path(.*?)>([^<]+)<\/path>"
+            
+            active1 := ""
+            active2 := ""
+            otherTabs := ""
+
+            Loop, parse, doinfo信息列表 , `n, `r
             {
-                if (RegExMatch(A_LoopField, 正则, do标签路径)){
+                if (RegExMatch(A_LoopField, 正则, 匹配)){
+                    标签属性 := 匹配1
+                    do标签路径1 := 匹配2
+                    
                     if not FileExist(do标签路径1)
-                        do标签路径1:=StrReplace(do标签路径1, "`&amp`;", "`&")
+                        do标签路径1:=StrReplace(do标签路径1, "&amp;", "&")
                     do标签路径1:=RTrim(do标签路径1,"\")
-                    do所以标签路径 .= do标签路径1 "`n"
+                    
+                    if InStr(标签属性, "active_tab=""1""") {
+                        active1 := do标签路径1 "`n"
+                    } else if InStr(标签属性, "active_tab=""2""") {
+                        active2 := do标签路径1 "`n"
+                    } else {
+                        otherTabs .= do标签路径1 "`n"
+                    }
                 }
             }
+            
+            ; 根据 mode 参数决定拼接和返回的内容
+            if (mode == 1) {
+                do所以标签路径 := active1
+            } else if (mode == 2) {
+                do所以标签路径 := active1 . active2
+            } else {
+                do所以标签路径 := active1 . active2 . otherTabs
+            }
+            
         }Else{
+            ; 备用获取方式 (如果生成XML失败)
             do所以标签路径:= DirectoryOpus_控件()
         }
+        
+        ; 去除首尾多余的换行符，防止只有1行时末尾带空行
         do所以标签路径:= Trim(do所以标签路径,"`n")
     }
     DetectHiddenWindows, off
     Return do所以标签路径
 }
 ;--------获取do收藏夹的的所有路径---------------------------------------
-DirectoryOpusgetfa(){
+DirectoryOpusgetfa(收藏夹文件路径:=""){
     DetectHiddenWindows,Off
     do所有路径:=""
     do收藏夹路径1:=""
     收藏夹文件 := A_AppData "\GPSoftware\Directory Opus\ConfigFiles\favorites.ofv"
     if not FileExist(收藏夹文件){
         if WinExist("ahk_exe dopus.exe")
-            收藏夹文件 := DirectoryOpus_path2("Clipboard COPYNAMES FILE """"/dopusdata""""") "\ConfigFiles\favorites.ofv"
+            收藏夹文件 := 收藏夹文件路径
     }
     if not FileExist(收藏夹文件)
         return ""
@@ -521,11 +551,11 @@ DirectoryOpusgetfa(){
             if not FileExist(do收藏夹路径1){
                 do收藏夹路径1:=StrReplace(do收藏夹路径1, "`&amp`;", "`&")
                 if (SubStr(do收藏夹路径1, 1, 6) = "lib://") or (SubStr(do收藏夹路径1, 1, 1) = "/"){
-                    if WinExist("ahk_exe dopus.exe"){
-                        command:="Clipboard COPYNAMES FILE """ do收藏夹路径1 """"
-                        do收藏夹路径1:= DirectoryOpus_path2(command)
-                    }Else
-                        do收藏夹路径1:= ""
+                    ;if WinExist("ahk_exe dopus.exe"){
+                    ;command:="Clipboard COPYNAMES FILE """ do收藏夹路径1 """"
+                    ;do收藏夹路径1:= DirectoryOpus_path2(command)
+                    ;}Else
+                    do收藏夹路径1:= ""
                 }
             }
             do收藏夹路径1:=RTrim(do收藏夹路径1,"\")
@@ -545,7 +575,7 @@ DirectoryOpusget2(command){
     DetectHiddenWindows, on
     if WinExist("ahk_exe dopus.exe"){
         ClipSaved := ClipboardAll
-        ;clipboard := ""
+        clipboard := ""
         WinGet, dopath, ProcessPath,ahk_exe dopus.exe
         SplitPath, dopath,,dir
         RunWait,"%dir%\dopusrt.exe" /acmd %command%
@@ -583,6 +613,7 @@ DirectoryOpusget3(command){
     DetectHiddenWindows, off
     Return do路径
 }
+
 DirectoryOpus_path2(command){
     do路径:=""
     do路径2:= DirectoryOpusget3(command)
@@ -2167,7 +2198,7 @@ CheckStringInFile(filePath, targetString) {
     foundLine := ""
     Loop, Parse, fileContent, `n, `r  ; 处理不同换行符
     {
-        if InStr(A_LoopField, targetString)
+        if InStr(A_LoopField, targetString) and WinExist("ahk_id " A_LoopField)
         {
             foundLine := A_LoopField
             break  ; 找到后立即退出循环

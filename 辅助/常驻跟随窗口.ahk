@@ -310,21 +310,20 @@ Return
 
     Gui, Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
 
-; === 设置所有者关系 ===
-hParent := 参数2
-Gui +Owner%hParent% -AlwaysOnTop  ; 关键：建立拥有关系，使 GUI 随父窗口隐藏/显示
+    ; === 设置所有者关系 ===
+    hParent := 参数2
+    Gui +Owner%hParent% -AlwaysOnTop  ; 关键：建立拥有关系，使 GUI 随父窗口隐藏/显示
 
-; === 添加消息监听，实现最小化同步和激活置顶 ===
-; 监听父窗口的 WM_SIZE 消息（窗口大小变化，包括最小化/还原）
-OnMessage(0x0005, "OnParentSize")   ; WM_SIZE = 0x0005
-; 监听父窗口的 WM_ACTIVATE 消息（激活状态变化）
-OnMessage(0x0006, "OnParentActivate") ; WM_ACTIVATE = 0x0006
+    ; === 添加消息监听，实现最小化同步和激活置顶 ===
+    ; 监听父窗口的 WM_SIZE 消息（窗口大小变化，包括最小化/还原）
+    OnMessage(0x0005, "OnParentSize")   ; WM_SIZE = 0x0005
+    ; 监听父窗口的 WM_ACTIVATE 消息（激活状态变化）
+    OnMessage(0x0006, "OnParentActivate") ; WM_ACTIVATE = 0x0006
 
-; 保存 GUI 句柄供回调使用
-global hGui := Gui_winID
-global hParent := hParent
+    ; 保存 GUI 句柄供回调使用
+    global hGui := Gui_winID
+    global hParent := hParent
 
-    
     SetTimer, ExitScript, Off   ;关闭5秒后的退出操作
 
     If (参数3="自动弹出"){
@@ -539,23 +538,23 @@ Return
     默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","是"))
     自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件安装路径 "\个人配置.ini","是")
 
-    if (自动跳转到文件管理器路径="关闭")
-        Menu, searchbox, Add, 开启 自动跳转到文件管理器路径, 开启自动跳转到文件管理器路径
-    if (自动跳转到文件管理器路径="开启"){
-        Menu, searchbox, Add, 自动跳转到文件管理器路径, 关闭自动跳转到文件管理器路径
-        Menu, searchbox, Icon, 自动跳转到文件管理器路径, shell32.dll, 145
-    }
+    ;if (自动跳转到文件管理器路径="关闭")
+        ;Menu, searchbox, Add, 开启 自动跳转到文件管理器路径, 开启自动跳转到文件管理器路径
+    ;if (自动跳转到文件管理器路径="开启"){
+        ;Menu, searchbox, Add, 自动跳转到文件管理器路径, 关闭自动跳转到文件管理器路径
+        ;Menu, searchbox, Icon, 自动跳转到文件管理器路径, shell32.dll, 145
+    ;}
 
     if (自动跳转到默认路径="关闭"){
         Menu, searchbox, Add, 开启 自动跳默认路径, 开启自动跳默认路径
-            if (自动跳转到文件管理器路径="开启")
-                Menu, searchbox, Disable, 开启 自动跳默认路径
-        }
+        if (自动跳转到文件管理器路径="开启")
+            Menu, searchbox, Disable, 开启 自动跳默认路径
+    }
     if (自动跳转到默认路径="开启"){
         Menu, searchbox, Add, 自动跳默认路径, 关闭自动跳默认路径
         Menu, searchbox, Icon, 自动跳默认路径, shell32.dll, 145
-            if (自动跳转到文件管理器路径="开启")
-                Menu, searchbox, Disable, 自动跳默认路径
+        if (自动跳转到文件管理器路径="开启")
+            Menu, searchbox, Disable, 自动跳默认路径
     }
 
     if (历史路径设为默认路径="关闭"){
@@ -695,7 +694,7 @@ Return
     ;else if (跳转方式="6")
     ;跳转方式3(另存为窗口id值, 跳转目标路径)
     Else{   ;智能跳转方式
-        ;if (InStr(CtlList, "DirectUIHWND2") ){   
+        ;if (InStr(CtlList, "DirectUIHWND2") ){
         $DialogType := SmellsLikeAFileDialog(另存为窗口id值)
         If ($DialogType="SYSLISTVIEW" or $DialogType="GENERAL"){    ;如果是新式对话框
             FeedDialog%$DialogType%(另存为窗口id值, 跳转目标路径)
@@ -794,7 +793,6 @@ return
 
 ;[跟随父窗口移动]═════════════════════════════════════════════════
 
-
 FollowParentWindow:
     menu名:= menu
     if !WinExist("ahk_id " Gs_tcWinID)  ; 如果父窗口已关闭
@@ -848,7 +846,7 @@ return
         资管所有路径:=Explorer_Path() "`n" Explorer_Path全部()
 
     if WinExist("ahk_exe dopus.exe")
-        do所有路径:=RTrim(DirectoryOpus_path("Clipboard SET {sourcepath}"),"\") "`n" RTrim(DirectoryOpus_path("Clipboard SET {destpath}"),"\") "`n" DirectoryOpusgetinfo()
+        do所有路径:= Trim(DirectoryOpusgetinfo(0),"`n")
 
     if WinExist("ahk_class TTOTAL_CMD")
         tc所有路径:= TotalCommander_path("0")
@@ -909,8 +907,6 @@ return
 关闭自动跳转到文件管理器路径:
     IniWrite, 关闭, %软件安装路径%\个人配置.ini,基础配置,自动跳转到文件管理器路径
 return
-
-
 
 开启历史路径设为默认:
     IniWrite, 开启, %软件安装路径%\个人配置.ini,基础配置,历史路径设为默认路径
@@ -1307,9 +1303,9 @@ class everything_xiaoyao
         if (文件夹名显示在前="开启"){
             SplitPath, A_LoopField, name
             if (name != "")
-            LV_Add("",name, A_LoopField)
+                LV_Add("",name, A_LoopField)
             Else
-            LV_Add("",A_LoopField,A_LoopField)
+                LV_Add("",A_LoopField,A_LoopField)
 
         }Else
             LV_Add("",A_LoopField)
@@ -1433,7 +1429,7 @@ DisplayToolTip:
 
     FileGetTime, OutputVar, %Col2%
     If (OutputVar)
-    FormatTime, OutTime, % OutputVar, yyyy/MM/dd HH:mm:ss
+        FormatTime, OutTime, % OutputVar, yyyy/MM/dd HH:mm:ss
     Else
         OutTime:="not found"
 

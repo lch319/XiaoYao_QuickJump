@@ -137,6 +137,7 @@ loop
                 WinGetClass, WindowClass, ahk_id %WinID2%   ; 获取目标窗口的类名
                 if (WindowClass = "#32770"){    ; 判断类名是否为 #32770
                     run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2% 自动弹出
+                    FileAppend,%WinID2%`n,%A_Temp%\常驻窗口关闭记录.txt
                     DialogType := ""
                 }
             }
@@ -208,6 +209,7 @@ loop
                 sleep, 10
                 if (result = "" or result = "FILE_ERROR"){
                     run,"%A_AhkPath%" "%A_ScriptDir%\常驻跟随窗口.ahk" -常驻窗口跟随 %WinID2% 自动弹出
+                    FileAppend,%WinID2%`n,%A_Temp%\常驻窗口关闭记录.txt
                 }
                 ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
             }

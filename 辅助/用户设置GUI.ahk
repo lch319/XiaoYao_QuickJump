@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.5.6"
+窗口标题名:="XiaoYao_快速跳转v4.5.8"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -70,7 +70,9 @@ Return
         常用路径最多显示数量:=Var_Read("常用路径最多显示数量","9","基础配置",软件配置路径 "\个人配置.ini","是")
         自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
         隐藏标题栏:=Var_Read("隐藏标题栏","关闭","基础配置",软件配置路径 "\个人配置.ini","否")
-
+        
+        ; 【新增读取】只显示文件夹名配置
+        只显示文件夹名:=Var_Read("只显示文件夹名","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
 
         默认常驻窗口窗口列表:="
 (
@@ -130,6 +132,9 @@ Return
 
     自动弹出:=自动弹出菜单
     自动弹出:= 自动弹出="关闭"?0:1
+    
+    ; 【新增初始化转换】
+    只显示文件夹名:= 只显示文件夹名="关闭"?0:1
 
     ;自动弹出常驻窗口:=自动弹出常驻窗口
     自动弹出常驻窗口:= 自动弹出常驻窗口="关闭"?0:1
@@ -237,6 +242,11 @@ Return
     Gui, 55:Add, Text, xm+%left_margin% yp+40, 自动弹出菜单
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v自动弹出, %OnOffState%
     GuiControl, Choose, 自动弹出, % 自动弹出+1
+    
+    ; 【新增排版】放置在自动弹出菜单的右侧
+    Gui, 55:Add, Text, x+10 yp+2, 只显示文件夹名
+    Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v只显示文件夹名, %OnOffState%
+    GuiControl, Choose, 只显示文件夹名, % 只显示文件夹名+1
 
     Gui, 55:Add, Text, xm+%left_margin% yp+40, 是否加载图标
     Gui, 55:Add, DropDownList, x+5 yp-2 w%text_width% v是否加载图标, %OnOffState%
@@ -252,7 +262,6 @@ Return
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
     Gui, 55:Add, Button, w75 x+20 yp G重置ok, 恢复默认
     Gui, 55:Add, Text, Cblue x+20 yp+5  G打开设置2, 配置文件
-    ;Gui, wenjianpl: Add, Edit, w400 vThirdVar2, %filebatch5%
     ;-------------------------------------------------------------------------
     Gui,55:Tab,常驻跟随窗口,,Exact
     距离最左边的长度:="10"
@@ -341,9 +350,6 @@ Return
     Gui, 55:Add, Text, xm+%left_margin% yp+30 , 隐藏标题栏:
     Gui, 55:Add, DropDownList, x+7 yp-2 w115 v隐藏标题栏, %OnOffState%
     GuiControl, Choose, 隐藏标题栏, % 隐藏标题栏+1
-
-
-
 
     Gui, 55:Add, Button, Default w75 x95 y620 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
@@ -545,6 +551,10 @@ Return
     IniWrite, %全局性菜单项功能%, %软件配置路径%\个人配置.ini,基础配置,全局性菜单项功能
     IniWrite, %初始文本框内容%, %软件配置路径%\个人配置.ini,基础配置,初始文本框内容
     IniWrite, %是否加载图标%, %软件配置路径%\个人配置.ini,基础配置,是否加载图标
+    
+    ; 【新增保存】将只显示文件夹名的结果写入配置
+    IniWrite, %只显示文件夹名%, %软件配置路径%\个人配置.ini,基础配置,只显示文件夹名
+
     IniWrite, %常用路径最多显示数量%, %软件配置路径%\个人配置.ini,基础配置,常用路径最多显示数量
 
     IniDelete, %软件配置路径%\个人配置.ini,窗口列表1
@@ -753,7 +763,6 @@ return
 添加子分类:
     run,"%A_AhkPath%" "%A_ScriptDir%\设置更多子分类常用路径.ahk"
 return
-
 
 #If WinActive("ahk_id" Gui_winID)
 ~Escape::
