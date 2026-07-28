@@ -473,13 +473,42 @@ DirectoryOpusgetinfo(mode := 0){
     DetectHiddenWindows, on
     if WinExist("ahk_exe dopus.exe"){
         FileDelete, %A_Temp%\pathlist.txt
-        WinGet, dopath, ProcessPath,ahk_exe dopus.exe
-        SplitPath, dopath,,dir
+        WinGet, dopath, ProcessPath, ahk_exe dopus.exe
+        SplitPath, dopath,, dir
 
-        if (A_IsAdmin){
-            RunWaitWithTimeout("""" dir "\dopusrt.exe"" /info " A_Temp "\pathlist.txt`,paths","100")
-        }Else
-            RunWait,"%dir%\dopusrt.exe" /info %A_Temp%\pathlist.txt`,paths
+        Process, Exist, dopus.exe
+        PID := ErrorLevel
+        status := IsProcessElevated(PID)  ; 检查 dopus.exe 是否以管理员权限运行
+        ; ================= 极速版降权运行 =================
+        if (A_IsAdmin) and !(status == 1) { ; 当前脚本是管理员权限，但 dopus.exe 不是管理员权限
+            lnkPath := A_Temp "\dopus_run.lnk"
+
+            ; 优化1: 只有当快捷方式不存在时才创建，避免每次调用都进行磁盘写入
+            if not FileExist(lnkPath){
+                args := "/info """ A_Temp "\pathlist.txt"",paths"
+                FileCreateShortcut, %dir%\dopusrt.exe, %lnkPath%, %dir%, %args%, , , , , 7
+            }
+
+            ; 触发执行
+            Run, explorer.exe "%lnkPath%"
+
+            ; 极限轮询：放弃会造成15ms强制延迟的 Sleep，改用 CPU 时间戳
+            StartTime := A_TickCount
+            Loop {
+                if FileExist(A_Temp "\pathlist.txt") {
+                    FileGetSize, fSize, %A_Temp%\pathlist.txt
+                    if (fSize > 0)
+                        break ; 文件只要一生成且不为空，瞬间打断循环继续往下走
+                }
+                if (A_TickCount - StartTime > 600) ; 极限等待 600 毫秒，超时则放弃
+                    break
+                Sleep, 0 ; 仅让出 CPU 时间片，不强制睡眠，实现真正的“瞬间响应”
+            }
+        } Else {
+            ;RunWait, "%dir%\dopusrt.exe" /info "%A_Temp%\pathlist.txt"`,paths,, Hide
+            RunWaitWithTimeout("""" dir "\dopusrt.exe"" /info " A_Temp "\pathlist.txt`,paths","300")
+        }
+        ; ==================================================
 
         if FileExist(A_Temp "\pathlist.txt"){   ;如果生成了文件
             FileRead, doinfo信息列表, %A_Temp%\pathlist.txt
@@ -496,9 +525,11 @@ DirectoryOpusgetinfo(mode := 0){
                     标签属性 := 匹配1
                     do标签路径1 := 匹配2
 
-                    if not FileExist(do标签路径1)
-                        do标签路径1:=StrReplace(do标签路径1, "&amp;", "&")
-                    do标签路径1:=RTrim(do标签路径1,"\")
+                    if not FileExist(do标签路径1) {
+                        do标签路径1 := StrReplace(do标签路径1, "&amp;", "&")
+                        do标签路径1 := StrReplace(do标签路径1, "&apos;", "'") ; 保留了你的单引号修复
+                    }
+                    do标签路径1 := RTrim(do标签路径1,"\")
 
                     if InStr(标签属性, "tab_state=""1""") {
                         active1 := do标签路径1 "`n"
@@ -2078,8 +2109,33 @@ FilterExistingPaths(paths) {
     Loop, Parse, paths, `n, `r  ; 处理Windows（`r`n）和Unix（`n）换行符
     {
         currentPath := Trim(A_LoopField)  ; 移除两端空格和换行符
-        if (currentPath != "" && FileExist(currentPath))  ; 检查非空且路径存在
-            existingPaths .= currentPath . "`n"
+        if (currentPath = "")
+            Continue
+            
+        ; --- 开始清洗路径，提取用于检测的“纯净”路径 ---
+        realPath := currentPath
+        
+        ; 1. 移除 ? 及其后面的自定义名称
+        if (Pos := InStr(realPath, "?"))
+            realPath := SubStr(realPath, 1, Pos - 1)
+            
+        ; 2. 移除 = 及其前面的程序专属标识 (如 ahk_exe dopus.exe=)
+        if (Pos := InStr(realPath, "="))
+            realPath := SubStr(realPath, Pos + 1)
+            
+        ; 3. 移除双引号
+        realPath := StrReplace(realPath, """")
+        
+        ; 4. 替换双斜杠 \\ 和正斜杠 / 为单斜杠 \
+        realPath := RegExReplace(realPath, "\\\\|/", "\")
+        
+        ; 5. 再次清理两端可能因为拆分而残留的空格
+        realPath := Trim(realPath)
+        ; ------------------------------------------------
+
+        ; 使用最纯粹的路径进行验证，但原封不动地保留包含配置参数的原字符串
+        if (FileExist(realPath))  
+            existingPaths .= currentPath . "`n"  
     }
     return Trim(existingPaths, "`n")  ; 移除末尾多余的换行符
 }
@@ -2248,4 +2304,47 @@ CheckStringInFile(filePath, targetString) {
     }
 
     return foundLine
+}
+
+; ==========================================
+; 函数：IsProcessElevated(PID)
+; 作用：判断指定 PID 的进程是否以管理员权限运行
+; 返回值：1 = 是管理员； 0 = 不是管理员； -1 = 发生错误/无法检测
+; ==========================================
+IsProcessElevated(PID) {
+    ; PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+    hProcess := DllCall("OpenProcess", "UInt", 0x1000, "Int", 0, "UInt", PID, "Ptr")
+
+    if (!hProcess) {
+        ; 如果当前 AHK 脚本是普通权限，尝试读取管理员进程时，API 会返回“拒绝访问” (Error 5)
+        ; 遇到这种情况，可以合理推断目标进程的权限比当前脚本高（即属于管理员或系统进程）
+        if (A_LastError == 5)
+            return 1
+        return -1
+    }
+
+    ; TOKEN_QUERY = 0x0008
+    hToken := 0
+    if (!DllCall("Advapi32.dll\OpenProcessToken", "Ptr", hProcess, "UInt", 0x0008, "PtrP", hToken)) {
+        DllCall("CloseHandle", "Ptr", hProcess)
+        return -1
+    }
+
+    ; TokenElevation class = 20
+    VarSetCapacity(elevation, 4, 0)
+    size := 0
+    success := DllCall("Advapi32.dll\GetTokenInformation"
+        , "Ptr", hToken
+        , "Int", 20          ; 20 代表查询 TokenElevation
+        , "Ptr", &elevation
+        , "UInt", 4
+        , "UIntP", size)
+
+    isElevated := NumGet(elevation, 0, "UInt")
+
+    ; 释放句柄防内存泄漏
+    DllCall("CloseHandle", "Ptr", hToken)
+    DllCall("CloseHandle", "Ptr", hProcess)
+
+    return success ? isElevated : -1
 }

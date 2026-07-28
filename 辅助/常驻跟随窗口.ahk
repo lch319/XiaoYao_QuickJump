@@ -1418,20 +1418,37 @@ class everything_xiaoyao
     GuiControl, -Redraw, %文本框ID%
 
     LV_Delete()
-    Loop, parse, str, %分隔符%
-    {
-        if (RegExMatch(A_LoopField, "^\s*$")) ;匹配空白行
-            Continue
-        if (文件夹名显示在前="开启"){
-            SplitPath, A_LoopField, name
-            if (name != "")
-                LV_Add("",name, A_LoopField)
-            Else
-                LV_Add("",A_LoopField,A_LoopField)
-
-        }Else
-            LV_Add("",A_LoopField)
+Loop, parse, str, %分隔符%
+{
+    if (RegExMatch(A_LoopField, "^\s*$")) ;匹配空白行
+        Continue
+    
+    ; --- 新增：拆分真实路径与自定义名称 ---
+    当前真实路径 := A_LoopField
+    自定义名称 := ""
+    if (Pos := InStr(当前真实路径, "?")) {
+        自定义名称 := SubStr(当前真实路径, Pos + 1)
+        当前真实路径 := SubStr(当前真实路径, 1, Pos - 1)
     }
+    ; ---------------------------------------
+
+    if (文件夹名显示在前="开启"){
+        if (自定义名称 != "") {
+            ; 优先使用自定义名称，隐藏列（Col 2）存写真实路径保证跳转正常
+            LV_Add("", 自定义名称, 当前真实路径)
+        } Else {
+            ; 没写自定义名称时，走原逻辑提取文件夹名
+            SplitPath, 当前真实路径, name
+            if (name != "")
+                LV_Add("", name, 当前真实路径)
+            Else
+                LV_Add("", 当前真实路径, 当前真实路径)
+        }
+    }Else {
+        ; 未开启文件夹名前置功能时，仅显示真实路径（丢弃自定义名称）
+        LV_Add("", 当前真实路径)
+    }
+}
     if (文件夹名显示在前 ="开启")
         SetColumnWidthWithLimit(1,名称列最大宽度)
     Else

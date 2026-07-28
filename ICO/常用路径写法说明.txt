@@ -3,7 +3,7 @@
 D:\下载
 D:\软件
 %A_Desktop%
-%A_MyDocuments%
+%A_MyDocuments%?我的文档
 ahk_exe QQ.exe=D:\软件\安装版
 ahk_exe QQ.exe=D:\软件\单文件
 ahk_exe dopus.exe=D:\软件\绿色版
@@ -17,8 +17,11 @@ ahk_exe Weixin.exe=D:\软件\绿色版
 		D:\\软件\\XiaoYao_快速跳转
 		D:/软件/QQ
 		"D:\软件\Weixin"
-	
-	3.常见的ahk内置变量：更多请查阅 https://wyagd001.github.io/zh-cn/docs/Variables.htm#BuiltIn
+	3.支持名称自定义显示，在路径末尾添加个分隔符? ，然后填你想要显示的名称
+		%A_MyDocuments%?我的文档
+		D:\软件\下载?我的下载
+
+	4.常见的ahk内置变量：更多请查阅 https://wyagd001.github.io/zh-cn/docs/Variables.htm#BuiltIn
 		A_Desktop	用户的"桌面"文件夹路径
 		A_MyDocuments	用户的"我的文档"文件夹路径
 		A_AppData	当前用户的应用数据文件夹路径（例如 C:\Users\Username\AppData\Roaming），常用于存放配置文件

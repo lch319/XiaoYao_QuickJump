@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.6.0"
+软件版本号:="4.6.4"
 
 ;如果配置不存在，新建一个默认配置
 if not FileExist(A_ScriptDir "\个人配置.ini")
@@ -350,26 +350,34 @@ ShowMenu:
 
     Loop, parse, 自定义常用路径, `n, `r
     {
-        DispName := FormatMenuName(A_LoopField)
+        ; --- 【新增】解析 "真实路径=自定义名称" 格式 ---
+        LoopPath := A_LoopField
+        CustomName := ""
+        if RegExMatch(LoopPath, "(.*)\?([^\?]+)$", m) {
+            LoopPath := m1
+            CustomName := m2
+        }
+        DispName := FormatMenuName(LoopPath, CustomName)
+        ; -----------------------------------------------
         if (A_Index = (常用路径最多显示数量 + 1)){
             Menu, 更多常用, Add,更多常用, Choice
             Menu, 更多常用, Disable,更多常用
             Menu ContextMenu, Add, (&M)更多常用, :更多常用
             if (是否加载图标 !="关闭")
                 Menu ContextMenu, Icon,(&M)更多常用, shell32.dll, 44
-            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
                 Menu, 更多常用, Add, %DispName%, Choice
                 if (是否加载图标 !="关闭")
                     Menu, 更多常用, Icon,%DispName%, shell32.dll, 44
             }
         }Else if (A_Index > (常用路径最多显示数量 + 1)){
-            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
                 Menu, 更多常用, Add, %DispName%, Choice
                 if (是否加载图标 !="关闭")
                     Menu, 更多常用, Icon,%DispName%, shell32.dll, 44
             }
         }Else{
-            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
+            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
                 Menu ContextMenu, Add, (&%A_index%)%DispName%, Choice
                 if (是否加载图标 !="关闭")
                     Menu ContextMenu, Icon,(&%A_index%)%DispName%, shell32.dll, 44
@@ -385,8 +393,16 @@ ShowMenu:
             更多常用路径:="更多常用路径" A_Index
             Loop, parse, 常用路径%A_Index%, `n, `r
             {
-                if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
-                    DispName := FormatMenuName(A_LoopField)
+                ; --- 【新增】解析 "真实路径=自定义名称" 格式 ---
+                LoopPath := A_LoopField
+                CustomName := ""
+                if RegExMatch(LoopPath, "(.*)\?([^\?]+)$", m) {
+                    LoopPath := m1
+                    CustomName := m2
+                }
+                ; 注意下方的 A_LoopField 已被替换为 LoopPath
+                if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
+                    DispName := FormatMenuName(LoopPath, CustomName)
                     Menu, %更多常用路径%, Add, %DispName%, Choice
                     if (是否加载图标 !="关闭")
                         Menu, %更多常用路径%, Icon,%DispName%, shell32.dll, 4
@@ -725,15 +741,28 @@ Return
 ;==================================================================================================
 
 打开常驻搜索窗口:
-    Gosub,手动弹出计数
+    if WinActive("常用路径跳转 ahk_class AutoHotkeyGUI ahk_exe XiaoYao_快速跳转.exe"){
+        ControlFocus,Edit1,A
+        return
+    }
     获取窗口id:=WinExist("A")
+    Gosub,手动弹出计数
     run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -常驻窗口跟随 %获取窗口id%
+    WinActivate,常用路径跳转%获取窗口id% ahk_class AutoHotkeyGUI
+    ControlFocus,Edit1,常用路径跳转%获取窗口id% ahk_class AutoHotkeyGUI
 return
 
 打开常驻搜索窗口2:
-    Gosub,手动弹出计数
+
+    if WinActive("常用路径跳转 ahk_class AutoHotkeyGUI ahk_exe XiaoYao_快速跳转.exe"){
+        ControlFocus,Edit1,A
+        return
+    }
     获取窗口id:=WinExist("A")
+    Gosub,手动弹出计数
     run,"%A_AhkPath%" "%A_ScriptDir%\辅助\常驻跟随窗口.ahk" -常驻窗口跟随 %获取窗口id% 全局版
+    WinActivate,常用路径跳转%获取窗口id% ahk_class AutoHotkeyGUI
+    ControlFocus,Edit1,常用路径跳转%获取窗口id% ahk_class AutoHotkeyGUI
 return
 
 检查窗口列表:
@@ -968,11 +997,18 @@ return
 
 ;-------------------------------------------------------------------
 ; 【新增】处理路径精简及同名计数的专门函数
-FormatMenuName(FullPath) {
+FormatMenuName(FullPath, CustomAlias:="") {
     global 只显示文件夹名, MenuDisplayMap, FolderNameCount, RealPathMap
     FullPath := RTrim(FullPath, "\")
     if (FullPath = "")
         return " " ; 返回空格避免 AHK Menu 崩溃
+
+    ; 【新增】如果有自定义名称，强制映射并直接返回
+    if (CustomAlias != "") {
+        MenuDisplayMap[FullPath] := CustomAlias
+        RealPathMap[CustomAlias] := FullPath
+        return CustomAlias
+    }
 
     if (只显示文件夹名 != "开启")
         return FullPath
