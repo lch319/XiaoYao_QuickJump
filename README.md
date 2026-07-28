@@ -14,6 +14,7 @@
 在 **打开/保存对话框** 中一键直达：
 - 资源管理器 / Total Commander (TC) / Double Commander (DC) / **Directory Opus (DO)** / XYplorer / Q-Dir 的当前路径  
 - ⭐ 特别适配 DO 文件管理器的收藏夹功能
+- 支持 WPS 文字、表格、演示和 PDF 自绘的打开/另存为文件浏览框
 
 ##  功能亮点
 
@@ -37,6 +38,8 @@
 ![自动跳转默认路径 图](https://raw.githubusercontent.com/lch319/cangku1/refs/heads/master/%E8%87%AA%E5%8A%A8%E8%B7%B3%E8%BD%AC%E5%88%B0%E9%BB%98%E8%AE%A4.jpg)
 
 - **广泛兼容**： 支持多种常见文件对话框类型（[支持的窗口类型图]）。
+
+  WPS 自绘文件浏览框支持手动跳转、常驻跟随、自动弹出和自动默认路径。跳转目标需为 Windows 可访问的本地目录或网络目录。
 
 ![支持窗口类型 图](https://raw.githubusercontent.com/lch319/cangku1/refs/heads/master/%E6%94%AF%E6%8C%81%E7%AA%97%E5%8F%A3%E6%8B%BC%E5%9B%BE.jpg)
 
@@ -83,5 +86,9 @@ ev1.5a需要特殊设置，在“高级”中把“alpha_instance”设为“fal
 - RunAny: https://github.com/hui-Zz/RunAny
 
 - QuickSwitch: https://github.com/gepruts/QuickSwitch
+
+- Listary WPS 文件对话框插件: https://github.com/listary/Listary.FileAppPlugin.WPS
+
+- UIAutomation for AutoHotkey: https://github.com/Descolada/UIAutomation（MIT 许可，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)）
 
 - Autohotkey 社区讨论: https://www.autohotkey.com/boards/viewtopic.php?f=6&t=124771

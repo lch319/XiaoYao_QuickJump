@@ -3,6 +3,11 @@
 ;MsgBox, % Calculate("10/2 + 3*4")  ; 输出 17
 ;MsgBox, % Calculate("7-2*3")       ; 输出 1
 ;═════════════════════════════════计算数学表达式═════════════════════════════════════════════════
+#Include *i %A_ScriptDir%\辅助\UIA_Interface.ahk
+#Include *i %A_ScriptDir%\UIA_Interface.ahk
+#Include *i %A_ScriptDir%\辅助\WPS文件对话框.ahk
+#Include *i %A_ScriptDir%\WPS文件对话框.ahk
+
 Calculate(expression) {
     ; 1. 去除所有空格
     expression := StrReplace(expression, " ", "")
@@ -309,6 +314,9 @@ ChangePath(_dir,this_id){
 ;-------------------------------------------
 ;只有在下列情况下，才将此对话框视为可能的文件对话框
 SmellsLikeAFileDialog(_thisID ){
+
+    if WPS_IsFileDialog(_thisID)
+        Return "WPS"
 
     WinGet, _controlList, ControlList, ahk_id %_thisID%
 

@@ -35,6 +35,7 @@ Loop, Parse, 常驻窗口窗口列表, `n, `r
     if not (RegExMatch(A_LoopField, "^\s*$"))  ; 跳过空行
         windows.Push(Trim(A_LoopField))
 }
+WPS_AddFileDialogWindowRules(windows)
 
 ;----------------黑名单窗列表读取-----------
 屏蔽xiaoyao窗口列表:=Var_Read("","ahk_exe IDMan.exe","窗口列表2",软件安装路径 "\个人配置.ini","是")
@@ -144,7 +145,7 @@ loop
         }
 
     }
-    WinWaitNotActive, ahk_class #32770
+    WinWaitNotActive, ahk_id %WinID2%
     sleep, 100
 
 
@@ -171,7 +172,10 @@ loop
     {
         ; 检查窗口是否存在
         if WinActive(winTitle){
-            WinID2 := WinExist(winTitle)
+            WinID2 := WinExist("A")
+            DialogType := SmellsLikeAFileDialog(WinID2)
+            if (WPS_IsSupportedProcess(WinID2) && (DialogType != "WPS"))
+                Continue
             自动跳转到默认路径:=Var_Read("自动跳转到默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
             历史路径设为默认路径:=Var_Read("历史路径设为默认路径","关闭","基础配置",软件安装路径 "\个人配置.ini","否")
             默认路径:=ReplaceVars(Var_Read("默认路径","","基础配置",软件安装路径 "\个人配置.ini","否"))
@@ -214,7 +218,7 @@ loop
                 ;MsgBox, 0x40, 窗口出现提示, 检测到目标窗口：`n"%activeTitle%"`n`n匹配条件：`n%winTitle%
             }
 
-            WinWaitNotActive,% winTitle
+            WinWaitNotActive, ahk_id %WinID2%
             break  ; 每次只处理一个出现的窗口
         }
     }

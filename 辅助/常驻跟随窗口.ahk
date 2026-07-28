@@ -676,6 +676,13 @@ Return
     ControlGet, hctl222, Hwnd,, SysTreeView321, ahk_id %另存为窗口id值%
     ControlGet, hctl333, Hwnd,, Edit1, ahk_id %另存为窗口id值%
 
+    $DialogType := SmellsLikeAFileDialog(另存为窗口id值)
+    if ($DialogType = "WPS") {
+        FeedDialogWPS(另存为窗口id值, 跳转目标路径)
+        WinActivate,ahk_id %Gui_winID%
+        Return
+    }
+
     if (跳转方式="2"){
         If (InStr(CtlList, "SHBrowseForFolder ShellNameSpace Control")){    ;如果是旧式对话框
             run,"%A_AhkPath%" "%A_ScriptDir%\外部调用跳转.ahk" %另存为窗口id值% "%跳转目标路径%"
