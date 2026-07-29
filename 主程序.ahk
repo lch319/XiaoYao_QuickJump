@@ -1,5 +1,5 @@
 ﻿;====================================================================================
-;仿Listary_C+G 列出打开的路径 （支持文件管理器、Directory Opus、 TC）最后更新：20251227
+;仿Listary_C+G 列出打开的路径 （支持文件管理器、Directory Opus、 TC）最后更新：20260728
 ;代码借鉴 https://www.autohotkey.com/boards/viewtopic.php?f=6&t=102377
 ;====================================================================================
 #NoEnv
@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.6.4"
+软件版本号:="4.6.5"
 
 ;如果配置不存在，新建一个默认配置
 if not FileExist(A_ScriptDir "\个人配置.ini")
@@ -212,6 +212,7 @@ If (自动弹出菜单="开启" or 自动跳转到文件管理器路径="开启"
         if not (RegExMatch(A_LoopField, "^\s*$"))
             windows.Push(Trim(A_LoopField))
     }
+    WPS_AddFileDialogWindowRules(windows)
     SetTitleMatchMode, 2
     SetTimer, 检查窗口列表, 10
 }
@@ -788,12 +789,15 @@ return
     for index, winTitle in windows
     {
         if WinActive(winTitle){
+            WinID2 := WinExist("A")
+            DialogType := SmellsLikeAFileDialog(WinID2)
+            if (WPS_IsSupportedProcess(WinID2) && (DialogType != "WPS"))
+                Continue
             if (全局变量11="0"){
                 自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",A_ScriptDir "\个人配置.ini","否")
                 给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",A_ScriptDir "\个人配置.ini","否")
 
                 If (自动跳转到文件管理器路径 = "开启"){
-                    WinID2 := WinExist(winTitle)
                     FolderPath222 := 获取最近文件管理器路径(给dc发送热键)
 
                     if (FolderPath222 !=""){
@@ -811,7 +815,6 @@ return
                 if (自动弹出菜单="开启" && 是否从常驻窗口切回=0){
                     If (自动跳转到文件管理器路径 = "开启")
                         Sleep, 200
-                    WinID2 := WinExist(winTitle)
                     DialogType := SmellsLikeAFileDialog(WinID2)
                     If DialogType{
                         sleep, %延迟自动弹出时间%
@@ -821,20 +824,20 @@ return
                     }
                 }
 
-                WinWaitNotActive,% winTitle
+                WinWaitNotActive, ahk_id %WinID2%
             }
             global 全局变量11 :="1"
             Return
         }
     }
     if WinActive("ahk_class #32770"){
+        WinID2 := WinExist("A")
         if (全局变量11="0"){
 
             自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",A_ScriptDir "\个人配置.ini","否")
             给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",A_ScriptDir "\个人配置.ini","否")
 
             If (自动跳转到文件管理器路径 = "开启"){
-                WinID2 := WinExist("ahk_class #32770")
                 FolderPath222 := 获取最近文件管理器路径(给dc发送热键)
 
                 if (FolderPath222 !=""){
@@ -852,7 +855,6 @@ return
             if (自动弹出菜单="开启" && 是否从常驻窗口切回=0){
                 If (自动跳转到文件管理器路径 = "开启")
                     Sleep, 200
-                WinID2 := WinExist("ahk_class #32770")
                 DialogType := SmellsLikeAFileDialog(WinID2)
                 If DialogType{
                     sleep, %延迟自动弹出时间%
@@ -861,7 +863,7 @@ return
                     DialogType := ""
                 }
             }
-            WinWaitNotActive, ahk_class #32770
+            WinWaitNotActive, ahk_id %WinID2%
         }
         全局变量11 :="1"
         Return
