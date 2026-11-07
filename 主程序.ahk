@@ -349,6 +349,7 @@ ShowMenu:
     if (是否加载图标 !="关闭")
         Menu ContextMenu, Icon, (&T)将当前路径加入常用, shell32.dll, 46
 
+    子菜单快捷键计数 := 0
     Loop, parse, 自定义常用路径, `n, `r
     {
         ; --- 【新增】解析 "真实路径=自定义名称" 格式 ---
@@ -367,15 +368,17 @@ ShowMenu:
             if (是否加载图标 !="关闭")
                 Menu ContextMenu, Icon,(&M)更多常用, shell32.dll, 44
             if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
-                Menu, 更多常用, Add, %DispName%, Choice
+                SubName := AccelMenuName(DispName, 子菜单快捷键计数)
+                Menu, 更多常用, Add, %SubName%, Choice
                 if (是否加载图标 !="关闭")
-                    Menu, 更多常用, Icon,%DispName%, shell32.dll, 44
+                    Menu, 更多常用, Icon,%SubName%, shell32.dll, 44
             }
         }Else if (A_Index > (常用路径最多显示数量 + 1)){
             if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
-                Menu, 更多常用, Add, %DispName%, Choice
+                SubName := AccelMenuName(DispName, 子菜单快捷键计数)
+                Menu, 更多常用, Add, %SubName%, Choice
                 if (是否加载图标 !="关闭")
-                    Menu, 更多常用, Icon,%DispName%, shell32.dll, 44
+                    Menu, 更多常用, Icon,%SubName%, shell32.dll, 44
             }
         }Else{
             if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
@@ -392,6 +395,7 @@ ShowMenu:
         if (常用路径开关%A_Index%="1" and 常用路径%A_Index%!="" and 常用路径名称%A_Index%!=""){
             常用路径名称:= 常用路径名称%A_Index%
             更多常用路径:="更多常用路径" A_Index
+            子菜单快捷键计数 := 0
             Loop, parse, 常用路径%A_Index%, `n, `r
             {
                 ; --- 【新增】解析 "真实路径=自定义名称" 格式 ---
@@ -404,9 +408,10 @@ ShowMenu:
                 ; 注意下方的 A_LoopField 已被替换为 LoopPath
                 if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
                     DispName := FormatMenuName(LoopPath, CustomName)
-                    Menu, %更多常用路径%, Add, %DispName%, Choice
+                    SubName := AccelMenuName(DispName, 子菜单快捷键计数)
+                    Menu, %更多常用路径%, Add, %SubName%, Choice
                     if (是否加载图标 !="关闭")
-                        Menu, %更多常用路径%, Icon,%DispName%, shell32.dll, 4
+                        Menu, %更多常用路径%, Icon,%SubName%, shell32.dll, 4
                 }
             }
 
@@ -586,6 +591,9 @@ ShowMenu:
 
     Menu ContextMenu, Delete
     Menu 历史打开1, Delete
+    Menu 更多常用, Delete
+    Loop, 5
+        Menu 更多常用路径%A_Index%, Delete
     if (显示此电脑子菜单="开启")
         Menu 此电脑子菜单, Delete
     if (DO的收藏夹="开启")
@@ -996,6 +1004,18 @@ Label_AdminLaunch:
         ExitApp
     }
 return
+
+;-------------------------------------------------------------------
+; 为子菜单项加上快捷键前缀，写法与主菜单的 (&1)名称 一致。
+; 第 1~9 项用 1~9，第 10~35 项用 A~Z，之后的项不加前缀；
+; 名称里已含 & 的项不加前缀也不占用序号。Count 由调用方持有，每次实际加上前缀才 +1。
+AccelMenuName(Name, ByRef Count) {
+    Static Keys := "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    if (InStr(Name, "&") or Count >= StrLen(Keys))
+        return Name
+    Count++
+    return "(&" . SubStr(Keys, Count, 1) . ")" . Name
+}
 
 ;-------------------------------------------------------------------
 ; 【新增】处理路径精简及同名计数的专门函数
