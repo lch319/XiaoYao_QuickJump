@@ -11,7 +11,7 @@ SendMode Input
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-软件版本号:="4.6.5"
+软件版本号:="4.6.6"
 
 ;如果配置不存在，新建一个默认配置
 if not FileExist(A_ScriptDir "\个人配置.ini")
@@ -21,12 +21,17 @@ if not FileExist(A_ScriptDir "\个人配置.ini")
 Gosub, Label_AdminLaunch
 
 ;清除辅助脚本进程
+;【常驻窗口自动恢复·第 1 步】先打「正在重载」标记：随后被关掉的常驻窗口看到标记，
+;就知道这是重启导致的关闭，从而保留自己的恢复记录（否则会被当成用户主动关闭而清掉）
+常驻恢复_开始重载()
 FileRead,后台隐藏运行脚本记录,%A_Temp%\后台隐藏运行脚本记录.txt
 Loop, parse, 后台隐藏运行脚本记录, `n, `r
 {
     WinKill,ahk_id %A_LoopField%
 }
 FileDelete, %A_Temp%\后台隐藏运行脚本记录.txt
+;【常驻窗口自动恢复·第 2 步】等主程序初始化完，把刚才被关掉的跟随窗口重新拉起来
+SetTimer, 恢复常驻跟随窗口, -800
 
 run,"%A_ScriptDir%\XiaoYao_快速跳转.exe" "%A_ScriptDir%\辅助\解决菜单不消失.ahk"
 
@@ -53,13 +58,7 @@ FileRead, 全局历史跳转, %A_ScriptDir%\ICO\历史跳转.ini
 菜单背景颜色:=Var_Read("菜单背景颜色","","基础配置",A_ScriptDir "\个人配置.ini","是")
 global 延迟自动弹出时间:=Var_Read("延迟自动弹出时间","100","基础配置",A_ScriptDir "\个人配置.ini","是")
 
-自定义常用路径2:=Var_Read("","","常用路径",A_ScriptDir "\个人配置.ini","是")
-自定义常用路径2:=ReplaceVars(自定义常用路径2)
-
 替换双斜杠单反斜杠双引号:=Var_Read("替换双斜杠单反斜杠双引号","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
-if (替换双斜杠单反斜杠双引号="开启"){
-    自定义常用路径2:=RegExReplace(StrReplace(自定义常用路径2, """", ""), "\\\\|/", "\")
-}
 
 DirectoryOpus全标签路径:=Var_Read("DirectoryOpus全标签路径","开启","基础配置",A_ScriptDir "\个人配置.ini","是")
 弹出位置X坐标:=Var_Read("弹出位置X坐标","","基础配置",A_ScriptDir "\个人配置.ini","是")
@@ -131,20 +130,8 @@ Loop, Parse, 屏蔽xiaoyao程序列表, `,
 给dc发送热键:=Var_Read("给dc发送热键","^+{F12}","基础配置",A_ScriptDir "\个人配置.ini","是")
 global 不存在时新建:=Var_Read("不存在时新建","关闭","基础配置",A_ScriptDir "\个人配置.ini","是")
 
-loop 5
-{
-    常用路径开关%A_Index%:= Var_Read("常用路径开关" A_Index,"0","基础配置",A_ScriptDir "\个人配置.ini","是")
-    if (常用路径开关%A_Index%="1"){
-        常用路径名称%A_Index%:= Var_Read("常用路径名称" A_Index,"常用" A_Index,"基础配置",A_ScriptDir "\个人配置.ini","是")
-        常用路径%A_Index%:= ReplaceVars(Var_Read("","","常用路径" A_Index,A_ScriptDir "\个人配置.ini","是"))
-        if (替换双斜杠单反斜杠双引号="开启"){
-            常用路径%A_Index%:=RegExReplace(StrReplace(常用路径%A_Index%, """", ""), "\\\\|/", "\")
-        }
-    }Else{
-        常用路径名称%A_Index%:= ""
-        常用路径%A_Index%:=""
-    }
-}
+;【新增】常用路径统一由该标签读取：启动时读一次，每次弹菜单前再读一次（保证实时生效）
+Gosub, 重新读取常用路径配置
 
 ;------------------ 读取配置终止线 ----------------
 
@@ -168,6 +155,7 @@ GuiTitleContent := A_IsAdmin=1?"（管理员）":""
 Menu,Tray,Tip,XiaoYao_快速跳转%GuiTitleContent%`n版本：v%软件版本号%`n作者：逍遥
 
 Menu,Tray,add,设置(&D),打开设置
+Menu,Tray,add,切换界面风格(&U),切换界面风格
 Menu,Tray,add,关于(&G),关于
 Menu,Tray,add,目录(&F),打开软件安装目录
 Menu,Tray,add
@@ -220,10 +208,23 @@ return
 
 ;------------------ 生成菜单 ------------------
 ShowMenu:
+    ;【新增】每次弹菜单都重读常用路径，常驻窗口里移除/添加后无需重启即可生效
+    Gosub, 重新读取常用路径配置
     ; 【新增】每次弹出菜单前，初始化菜单名称与真实路径的映射表
     global MenuDisplayMap := {}
     global FolderNameCount := {}
     global RealPathMap := {}
+
+    ;【新增】每次弹菜单前清空子菜单。加了编号前缀后条目名不再相同，
+    ; 若不清空，AHK 会把上一次的条目累积到同一个子菜单里。
+    ; UseErrorLevel 保证菜单不存在时也不会弹错误框（首次运行就是这种情况）。
+    待清空菜单列表 := ["更多常用", "更多常用路径1", "更多常用路径2", "更多常用路径3", "更多常用路径4", "更多常用路径5", "此电脑子菜单", "历史打开1", "do收藏夹", "更多设置项"]
+    For _, 菜单名 in 待清空菜单列表
+    {
+        Menu, %菜单名%, UseErrorLevel
+        Menu, %菜单名%, DeleteAll
+    }
+    ErrorLevel := 0
 
     ExplorerPath:=""
     DirectoryOpuspath:=""
@@ -349,7 +350,10 @@ ShowMenu:
     if (是否加载图标 !="关闭")
         Menu ContextMenu, Icon, (&T)将当前路径加入常用, shell32.dll, 46
 
-    子菜单快捷键计数 := 0
+    ; 主菜单里已被固定条目占用的加速键：
+    ; T加入常用 M更多常用 P此电脑 H历史打开 O收藏夹 S设置 C关闭菜单 A当前路径 B/D/E/F/G子分类
+    主菜单保留键 := "TMPHOSCABDEFG"
+    更多常用序号 := 0
     Loop, parse, 自定义常用路径, `n, `r
     {
         ; --- 【新增】解析 "真实路径=自定义名称" 格式 ---
@@ -361,41 +365,44 @@ ShowMenu:
         }
         DispName := FormatMenuName(LoopPath, CustomName)
         ; -----------------------------------------------
+        ; 超过上限时建立"更多常用"子菜单（无论该项是否可显示）
         if (A_Index = (常用路径最多显示数量 + 1)){
             Menu, 更多常用, Add,更多常用, Choice
             Menu, 更多常用, Disable,更多常用
             Menu ContextMenu, Add, (&M)更多常用, :更多常用
             if (是否加载图标 !="关闭")
                 Menu ContextMenu, Icon,(&M)更多常用, shell32.dll, 44
-            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
-                SubName := AccelMenuName(DispName, 子菜单快捷键计数)
-                Menu, 更多常用, Add, %SubName%, Choice
-                if (是否加载图标 !="关闭")
-                    Menu, 更多常用, Icon,%SubName%, shell32.dll, 44
-            }
-        }Else if (A_Index > (常用路径最多显示数量 + 1)){
-            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
-                SubName := AccelMenuName(DispName, 子菜单快捷键计数)
-                Menu, 更多常用, Add, %SubName%, Choice
-                if (是否加载图标 !="关闭")
-                    Menu, 更多常用, Icon,%SubName%, shell32.dll, 44
-            }
+        }
+        if !((失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)))
+            Continue
+
+        if (A_Index > 常用路径最多显示数量){
+            ; 【新增】折叠进"更多常用"的条目同样带 1-9/0/A-Z 加速键（子菜单内独立编号）
+            更多常用序号++
+            菜单项名 := 带加速键的菜单名(DispName, 更多常用序号)
+            Menu, 更多常用, Add, %菜单项名%, Choice
+            if (是否加载图标 !="关闭")
+                Menu, 更多常用, Icon, %菜单项名%, shell32.dll, 44
         }Else{
-            if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
-                Menu ContextMenu, Add, (&%A_index%)%DispName%, Choice
-                if (是否加载图标 !="关闭")
-                    Menu ContextMenu, Icon,(&%A_index%)%DispName%, shell32.dll, 44
-            }
+            菜单项名 := 带加速键的菜单名(DispName, A_Index, 主菜单保留键)
+            Menu ContextMenu, Add, %菜单项名%, Choice
+            if (是否加载图标 !="关闭")
+                Menu ContextMenu, Icon, %菜单项名%, shell32.dll, 44
         }
     }
 
+    ; 子分类入口统一用 B/D/E/F/G 打开（这 5 个字母已从上方的常用路径编号里排除）
+    子分类快捷键表 := "BDEFG"
     Loop, 5
     {
+        分类序号 := A_Index
         常用路径%A_Index%:= 程序专属路径筛选(常用路径%A_Index%, $WinID)
         if (常用路径开关%A_Index%="1" and 常用路径%A_Index%!="" and 常用路径名称%A_Index%!=""){
             常用路径名称:= 常用路径名称%A_Index%
             更多常用路径:="更多常用路径" A_Index
-            子菜单快捷键计数 := 0
+            分类键 := SubStr(子分类快捷键表, 分类序号, 1)
+            分类菜单名 := (分类键 != "" and !InStr(常用路径名称, "&")) ? "(&" 分类键 ")" 常用路径名称 : 常用路径名称
+            子项序号 := 0
             Loop, parse, 常用路径%A_Index%, `n, `r
             {
                 ; --- 【新增】解析 "真实路径=自定义名称" 格式 ---
@@ -408,29 +415,34 @@ ShowMenu:
                 ; 注意下方的 A_LoopField 已被替换为 LoopPath
                 if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(LoopPath)){
                     DispName := FormatMenuName(LoopPath, CustomName)
-                    SubName := AccelMenuName(DispName, 子菜单快捷键计数)
-                    Menu, %更多常用路径%, Add, %SubName%, Choice
+                    ; 【新增】用户自建子分类里的条目也带独立编号的加速键
+                    子项序号++
+                    菜单项名 := 带加速键的菜单名(DispName, 子项序号)
+                    Menu, %更多常用路径%, Add, %菜单项名%, Choice
                     if (是否加载图标 !="关闭")
-                        Menu, %更多常用路径%, Icon,%SubName%, shell32.dll, 4
+                        Menu, %更多常用路径%, Icon, %菜单项名%, shell32.dll, 4
                 }
             }
 
-            Menu ContextMenu, Add, %常用路径名称%, :%更多常用路径%
+            Menu ContextMenu, Add, %分类菜单名%, :%更多常用路径%
             if (是否加载图标 !="关闭")
-                Menu ContextMenu, Icon,%常用路径名称%, shell32.dll, 44
+                Menu ContextMenu, Icon, %分类菜单名%, shell32.dll, 44
         }
     }
     ; ------------------ 此电脑子菜单 ------------------
     if (显示此电脑子菜单 = "开启") {
         ; 1. 获取并添加所有磁盘盘符
         DriveGet, driveList, List
+        此电脑序号 := 0
         Loop, Parse, driveList
         {
             DrivePath := A_LoopField ":\"
             DispName := FormatMenuName(DrivePath)
-            Menu, 此电脑子菜单, Add, %DispName%, Choice
+            此电脑序号++
+            菜单项名 := 带加速键的菜单名(DispName, 此电脑序号)
+            Menu, 此电脑子菜单, Add, %菜单项名%, Choice
             if (是否加载图标 !="关闭")
-                Menu, 此电脑子菜单, Icon, %DispName%, shell32.dll, 9
+                Menu, 此电脑子菜单, Icon, %菜单项名%, shell32.dll, 9
         }
 
         Menu, 此电脑子菜单, Add ; 分隔线
@@ -454,9 +466,11 @@ ShowMenu:
             MenuDisplayMap[SysPath] := SysName
             RealPathMap[SysName] := SysPath
 
-            Menu, 此电脑子菜单, Add, %SysName%, Choice
+            此电脑序号++
+            菜单项名 := 带加速键的菜单名(SysName, 此电脑序号)
+            Menu, 此电脑子菜单, Add, %菜单项名%, Choice
             if (是否加载图标 !="关闭")
-                Menu, 此电脑子菜单, Icon, %SysName%, %IconDll%, %IconNum%
+                Menu, 此电脑子菜单, Icon, %菜单项名%, %IconDll%, %IconNum%
         }
 
         ; 3. 挂载到主菜单
@@ -474,6 +488,7 @@ ShowMenu:
     Menu ContextMenu, Add, (&H)历史打开, :历史打开1
     if (是否加载图标 !="关闭")
         Menu ContextMenu, Icon,(&H)历史打开, shell32.dll, 20
+    历史序号 := 0
     if FileExist(A_ScriptDir "\ICO\历史跳转.ini"){
         历史跳转:=""
         历史跳转:=全局历史跳转
@@ -483,9 +498,11 @@ ShowMenu:
                 if !(RegExMatch(A_LoopField, "^\s*$")){
                     if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
                         DispName := FormatMenuName(A_LoopField)
-                        Menu, 历史打开1, Add, %DispName%, Choice
+                        历史序号++
+                        菜单项名 := 带加速键的菜单名(DispName, 历史序号)
+                        Menu, 历史打开1, Add, %菜单项名%, Choice
                         if (是否加载图标 !="关闭")
-                            Menu, 历史打开1, Icon,%DispName%, shell32.dll, 4
+                            Menu, 历史打开1, Icon, %菜单项名%, shell32.dll, 4
                     }
                 }
             }
@@ -496,18 +513,22 @@ ShowMenu:
     if (DO的收藏夹="开启") and (do收藏夹所有路径 !=""){
         Menu, do收藏夹, Add,部分收藏夹需先运行do, Choice
         Menu, do收藏夹, Disable,部分收藏夹需先运行do
-        Menu ContextMenu, Add, (&H)do收藏夹, :do收藏夹
+        ; 原来与"历史打开"重复占用 H，实际永远按不到，这里改为 O
+        Menu ContextMenu, Add, (&O)do收藏夹, :do收藏夹
         if (是否加载图标 !="关闭")
-            Menu ContextMenu, Icon,(&H)do收藏夹, shell32.dll, 20
+            Menu ContextMenu, Icon,(&O)do收藏夹, shell32.dll, 20
+        收藏夹序号 := 0
         if (do收藏夹所有路径 !=""){
             Loop, parse, do收藏夹所有路径, `n, `r
             {
                 if !(RegExMatch(A_LoopField, "^\s*$")){
                     if (失效路径显示设置 !="关闭") or (失效路径显示设置 ="关闭" and FileExist(A_LoopField)){
                         DispName := FormatMenuName(A_LoopField)
-                        Menu, do收藏夹, Add, %DispName%, Choice
+                        收藏夹序号++
+                        菜单项名 := 带加速键的菜单名(DispName, 收藏夹序号)
+                        Menu, do收藏夹, Add, %菜单项名%, Choice
                         if (是否加载图标 !="关闭")
-                            Menu, do收藏夹, Icon,%DispName%, shell32.dll, 4
+                            Menu, do收藏夹, Icon, %菜单项名%, shell32.dll, 4
                     }
                 }
             }
@@ -524,26 +545,39 @@ ShowMenu:
     ;Menu, 更多设置项, Icon, 自动跳默认路径, shell32.dll, 145
     ;}
 
+    ;【新增】设置子菜单里原本没有加速键的条目也编号；
+    ; 末尾"设置(&D)/重启(&R)/退出(&E)"保持原有字母键，不重复加前缀
+    设置序号 := 0
     if (历史路径设为默认路径="关闭"){
-        Menu, 更多设置项, Add, 开启 历史路径设为默认, 开启历史路径设为默认
+        设置序号++
+        设置项1 := 带加速键的菜单名("开启 历史路径设为默认", 设置序号)
+        Menu, 更多设置项, Add, %设置项1%, 开启历史路径设为默认
         if (自动跳转到默认路径="关闭")
-            Menu, 更多设置项, Disable, 开启 历史路径设为默认
+            Menu, 更多设置项, Disable, %设置项1%
     }
     if (历史路径设为默认路径="开启"){
-        Menu, 更多设置项, Add, 历史路径设为默认, 关闭历史路径设为默认
-        Menu, 更多设置项, Icon, 历史路径设为默认, shell32.dll, 145
+        设置序号++
+        设置项2 := 带加速键的菜单名("历史路径设为默认", 设置序号)
+        Menu, 更多设置项, Add, %设置项2%, 关闭历史路径设为默认
+        Menu, 更多设置项, Icon, %设置项2%, shell32.dll, 145
         if (自动跳转到默认路径="关闭")
-            Menu, 更多设置项, Disable, 历史路径设为默认
+            Menu, 更多设置项, Disable, %设置项2%
     }
 
-    Menu, 更多设置项, Add, 设置 默认路径, 设置默认路径
-    Menu, 更多设置项, Add, 查看 当前自动跳转路径, 查看默认路径
+    设置序号++
+    设置项3 := 带加速键的菜单名("设置 默认路径", 设置序号)
+    设置序号++
+    设置项4 := 带加速键的菜单名("查看 当前自动跳转路径", 设置序号)
+    Menu, 更多设置项, Add, %设置项3%, 设置默认路径
+    Menu, 更多设置项, Add, %设置项4%, 查看默认路径
     if (自动跳转到默认路径="关闭") or (自动跳转到默认路径="开启" and 历史路径设为默认路径="开启"){
-        Menu, 更多设置项, Disable, 设置 默认路径
-        Menu, 更多设置项, Disable, 查看 当前自动跳转路径
+        Menu, 更多设置项, Disable, %设置项3%
+        Menu, 更多设置项, Disable, %设置项4%
     }
     Menu, 更多设置项, Add
-    Menu, 更多设置项, Add, 在该程序中禁用xiaoyao, 在该程序中禁用xiaoyao
+    设置序号++
+    设置项5 := 带加速键的菜单名("在该程序中禁用xiaoyao", 设置序号)
+    Menu, 更多设置项, Add, %设置项5%, 在该程序中禁用xiaoyao
 
     Menu, 更多设置项, Add
     Menu, 更多设置项, Add, 设置(&D), 打开设置
@@ -591,9 +625,6 @@ ShowMenu:
 
     Menu ContextMenu, Delete
     Menu 历史打开1, Delete
-    Menu 更多常用, Delete
-    Loop, 5
-        Menu 更多常用路径%A_Index%, Delete
     if (显示此电脑子菜单="开启")
         Menu 此电脑子菜单, Delete
     if (DO的收藏夹="开启")
@@ -685,6 +716,19 @@ Return
     Gui,guanyu:Add, Edit,r9 w380,作者:逍遥`nhttps://github.com/lch319/XiaoYao_QuickJump`n`nQQ群：`n246308937(RunAny快速启动一劳永逸)`n736344313(Directory Opus 2000人群)`n`n在打开或保存对话框中，快速定位到当前打开的文件夹路径。`n目前支持 资管/TC/DO/XY/Q-Dir
     Gui,guanyu:Show,,快速跳转_v%软件版本号%
 Return
+;================ 一键在「经典 / 现代」界面之间切换 ================
+切换界面风格:
+    IniRead, 当前界面风格, %A_ScriptDir%\个人配置.ini, 基础配置, 界面风格, 经典
+    if (当前界面风格 = "现代"){
+        IniWrite, 经典, %A_ScriptDir%\个人配置.ini,基础配置,界面风格
+        ttip("已切换为【经典】界面，正在重启…", 2500)
+    }Else{
+        IniWrite, 现代, %A_ScriptDir%\个人配置.ini,基础配置,界面风格
+        ttip("已切换为【现代】界面，正在重启…", 2500)
+    }
+    Gosub, Menu_Reload
+return
+
 Menu_Reload:
     Critical
     FileDelete, %A_Temp%\常驻窗口关闭记录.txt
@@ -699,6 +743,9 @@ return
 Menu_Exit:
     FileDelete, %A_Temp%\常驻窗口关闭记录.txt
     FileDelete, %A_Temp%\跳转默认打开记录.txt
+    ; 用户是真的要退出软件：清掉常驻窗口恢复记录，避免下次启动又把窗口冒出来
+    FileDelete, %A_Temp%\XY_常驻恢复\*.txt
+    FileDelete, %A_Temp%\XY_常驻恢复\重载中.mark
     run,%comSpec% /c taskkill /f /im XiaoYao_快速跳转.exe,,Hide
 ExitApp
 return
@@ -773,6 +820,13 @@ return
     WinActivate,常用路径跳转%获取窗口id% ahk_class AutoHotkeyGUI
     ControlFocus,Edit1,常用路径跳转%获取窗口id% ahk_class AutoHotkeyGUI
 return
+
+;【常驻窗口自动恢复·第 2 步】按记录把常驻跟随窗口重新拉起来。
+;  场景：设置里点保存、托盘切换界面风格 → 主程序整体重启 → 刚打开着的「另存为/打开」
+;  对话框旁边的常驻窗口被清掉，而对话框不会再次弹事件，所以必须由这里补开。
+恢复常驻跟随窗口:
+    常驻恢复_执行(A_ScriptDir "\辅助")
+Return
 
 检查窗口列表:
     ; === 新增：记录焦点切换轨迹，拦截从常驻窗口切回时的重复弹窗 ===
@@ -1006,15 +1060,39 @@ Label_AdminLaunch:
 return
 
 ;-------------------------------------------------------------------
-; 为子菜单项加上快捷键前缀，写法与主菜单的 (&1)名称 一致。
-; 第 1~9 项用 1~9，第 10~35 项用 A~Z，之后的项不加前缀；
-; 名称里已含 & 的项不加前缀也不占用序号。Count 由调用方持有，每次实际加上前缀才 +1。
-AccelMenuName(Name, ByRef Count) {
-    Static Keys := "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    if (InStr(Name, "&") or Count >= StrLen(Keys))
-        return Name
-    Count++
-    return "(&" . SubStr(Keys, Count, 1) . ")" . Name
+;【新增】菜单加速键分配 -------------------------------------------------
+; Windows 菜单的加速键按「每个弹出菜单」独立生效，子菜单与父菜单用相同的数字
+; 也不会串（已实测）。所以每个子菜单都从 1 开始编号：1-9 → 0 → A-Z。
+; 排除键用于避开同一菜单里已经被固定占用的字母（如主菜单的 T/M/P/H/S/C 等）。
+; 注意：这里刻意不用 Loop，避免污染调用方解析循环里的 A_Index / A_LoopField。
+菜单加速键前缀(序号, 排除键:="") {
+    static 键表 := "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    if (序号 < 1)
+        序号 := 1
+    if (排除键 = "")
+        return (序号 <= StrLen(键表)) ? "(&" SubStr(键表, 序号, 1) ")" : "(" 序号 ")"
+
+    计数 := 0
+    位置 := 0
+    表长 := StrLen(键表)
+    While (位置 < 表长)
+    {
+        位置++
+        字符 := SubStr(键表, 位置, 1)
+        if InStr(排除键, 字符)
+            Continue
+        计数++
+        if (计数 = 序号)
+            return "(&" 字符 ")"
+    }
+    return "(" 序号 ")"   ; 键位用尽：只给编号，不再占用加速键（Choice 仍会剥掉这个前缀）
+}
+
+; 已经自带 & 的条目（如"设置(&D)"）原样返回，避免一个条目出现两个加速键
+带加速键的菜单名(名称, 序号, 排除键:="") {
+    if InStr(名称, "&")
+        return 名称
+    return 菜单加速键前缀(序号, 排除键) 名称
 }
 
 ;-------------------------------------------------------------------
@@ -1061,6 +1139,30 @@ FormatMenuName(FullPath, CustomAlias:="") {
 }
 
 ;-------------------------------------------------------------------
+;【新增】重新读取常用路径配置（启动时 + 每次弹菜单前调用）
+; 常驻窗口/设置界面修改 个人配置.ini 后，这里保证主菜单无需重启就能拿到最新内容
+重新读取常用路径配置:
+    自定义常用路径2 := Var_Read("","","常用路径",A_ScriptDir "\个人配置.ini","是")
+    自定义常用路径2 := ReplaceVars(自定义常用路径2)
+    if (替换双斜杠单反斜杠双引号="开启")
+        自定义常用路径2 := RegExReplace(StrReplace(自定义常用路径2, """", ""), "\\\\|/", "\")
+
+    loop 5
+    {
+        常用路径开关%A_Index% := Var_Read("常用路径开关" A_Index,"0","基础配置",A_ScriptDir "\个人配置.ini","是")
+        if (常用路径开关%A_Index%="1"){
+            常用路径名称%A_Index% := Var_Read("常用路径名称" A_Index,"常用" A_Index,"基础配置",A_ScriptDir "\个人配置.ini","是")
+            常用路径%A_Index% := ReplaceVars(Var_Read("","","常用路径" A_Index,A_ScriptDir "\个人配置.ini","是"))
+            if (替换双斜杠单反斜杠双引号="开启")
+                常用路径%A_Index% := RegExReplace(StrReplace(常用路径%A_Index%, """", ""), "\\\\|/", "\")
+        }Else{
+            常用路径名称%A_Index% := ""
+            常用路径%A_Index% := ""
+        }
+    }
+Return
+
+;-------------------------------------------------------------------
 添加到常用路径:
     if InStr("`n" 自定义常用路径2 "`n", "`n" 当前活动标签 "`n") {
         ttip("该路径已存在于常用路径列表中！")
@@ -1074,7 +1176,8 @@ FormatMenuName(FullPath, CustomAlias:="") {
         FileEncoding, UTF-16
         FileAppend, %ConfigContent%, %ConfigFile%
     } else {
-        FileAppend, `n[常用路径]`n%NewPath%, %ConfigFile%
+        ; 原写法用了未定义变量 %NewPath%，且未设置 UTF-16 编码会写坏配置文件
+        IniWrite, %当前活动标签%, %ConfigFile%, 常用路径
     }
 
     自定义常用路径2 := 当前活动标签 "`n" 自定义常用路径2

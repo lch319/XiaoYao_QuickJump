@@ -4,7 +4,7 @@
 #Include %A_ScriptDir%\公用函数.ahk
 
 FileAppend,%A_ScriptHwnd%`n,%A_Temp%\后台隐藏运行脚本记录.txt
-窗口标题名:="XiaoYao_快速跳转v4.6.5"
+窗口标题名:="XiaoYao_快速跳转v4.6.6"
 SplitPath, A_ScriptDir,, 软件配置路径
 ;软件配置路径:="D:\RunAny\PortableSoft\XiaoYao_快速跳转\XiaoYao_快速跳转"
 
@@ -43,6 +43,8 @@ Return
 
         一键跳转热键:=Var_Read("一键跳转热键","","基础配置",软件配置路径 "\个人配置.ini","否")
         跳转方式:=Var_Read("跳转方式","1","基础配置",软件配置路径 "\个人配置.ini","是")
+        自动按修改时间排序:=Var_Read("自动按修改时间排序","关闭","基础配置",软件配置路径 "\个人配置.ini","否")
+        修改时间排序方向:=Var_Read("修改时间排序方向","降序","基础配置",软件配置路径 "\个人配置.ini","否")
         保留个数:=Var_Read("历史跳转保留数","5","基础配置",软件配置路径 "\个人配置.ini","是")
         开机自启:=Var_Read("开机自启","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
 
@@ -70,6 +72,7 @@ Return
         常用路径最多显示数量:=Var_Read("常用路径最多显示数量","9","基础配置",软件配置路径 "\个人配置.ini","是")
         自动跳转到文件管理器路径:=Var_Read("自动跳转到文件管理器路径","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
         隐藏标题栏:=Var_Read("隐藏标题栏","关闭","基础配置",软件配置路径 "\个人配置.ini","否")
+        界面风格:=Var_Read("界面风格","经典","基础配置",软件配置路径 "\个人配置.ini","是")
 
         ; 【新增读取】只显示文件夹名配置
         只显示文件夹名:=Var_Read("只显示文件夹名","关闭","基础配置",软件配置路径 "\个人配置.ini","是")
@@ -170,6 +173,8 @@ Return
     DO全标签:= DO全标签="关闭"?0:1
     跳转方式1:=跳转方式
     跳转方式1 := 跳转方式1="1"?0:跳转方式1="2"?1:跳转方式1="3"?2:跳转方式1="4"?3:跳转方式1="5"?4:3
+    自动按修改时间排序:= 自动按修改时间排序="关闭"?0:1
+    修改时间排序方向1:= 修改时间排序方向="升序"?1:0
     自动弹出时间:=延迟自动弹出时间
     X坐标:=弹出位置X坐标
     Y坐标:=弹出位置Y坐标
@@ -361,6 +366,10 @@ Return
     Gui, 55:Add, Text, xm+%left_margin% yp+30 , 隐藏标题栏:
     Gui, 55:Add, DropDownList, x+7 yp-2 w115 v隐藏标题栏, %OnOffState%
     GuiControl, Choose, 隐藏标题栏, % 隐藏标题栏+1
+    Gui, 55:Add, Text, x+18 yp+2, 界面风格:
+    Gui, 55:Add, DropDownList, x+5 yp-2 w98 v界面风格, 经典|现代
+    界面风格序号 := (界面风格="现代") ? 2 : 1
+    GuiControl, Choose, 界面风格, %界面风格序号%
 
     Gui, 55:Add, Button, Default w75 x95 y620 G设置ok, 确定
     Gui, 55:Add, Button, w75 x+20 yp G取消ok, 取消
@@ -480,6 +489,14 @@ Return
     Gui, 55:Add, DropDownList, x+5 yp-2 w86 v不存在时新建, %OnOffState%
     GuiControl, Choose, 不存在时新建, % 不存在时新建+1
 
+    Gui, 55:Add, Text, xm+%left_margin% yp+35 , 【谨慎开启】跳转后按修改时间排序:
+    Gui, 55:Add, DropDownList, x+5 yp-2 w86 v自动按修改时间排序, %OnOffState%
+    GuiControl, Choose, 自动按修改时间排序, % 自动按修改时间排序+1
+
+    Gui, 55:Add, Text, x+22 yp+2, 方向:
+    Gui, 55:Add, DropDownList, x+5 yp-2 w64 v修改时间排序方向1, 降序|升序
+    GuiControl, Choose, 修改时间排序方向1, % 修改时间排序方向1+1
+
     Gui, 55:Add, Text, xm+%left_margin% yp+35 , 自动跳到文件管理器路径(开启后跳转默认路径将失效):
     Gui, 55:Add, DropDownList, x+7 yp-2 w%text_width% v自动跳转到文件管理器路径, %OnOffState%
     GuiControl, Choose, 自动跳转到文件管理器路径, % 自动跳转到文件管理器路径+1
@@ -535,6 +552,8 @@ Return
     IniWrite, %Y坐标%, %软件配置路径%\个人配置.ini,基础配置,弹出位置Y坐标
     IniWrite, %热键2%, %软件配置路径%\个人配置.ini,基础配置,一键跳转热键
     IniWrite, %跳转方式1%, %软件配置路径%\个人配置.ini,基础配置,跳转方式
+    IniWrite, %自动按修改时间排序%, %软件配置路径%\个人配置.ini,基础配置,自动按修改时间排序
+    IniWrite, %修改时间排序方向1%, %软件配置路径%\个人配置.ini,基础配置,修改时间排序方向
     IniWrite, %历史打开数量%, %软件配置路径%\个人配置.ini,基础配置,历史跳转保留数
     IniWrite, %Auto_Launch%, %软件配置路径%\个人配置.ini,基础配置,开机自启
     IniWrite, %DO收藏夹1%, %软件配置路径%\个人配置.ini,基础配置,DO的收藏夹
@@ -553,6 +572,7 @@ Return
     IniWrite, %失效路径显示设置%, %软件配置路径%\个人配置.ini,基础配置,失效路径显示设置
     IniWrite, %自动跳转到文件管理器路径%, %软件配置路径%\个人配置.ini,基础配置,自动跳转到文件管理器路径
     IniWrite, %隐藏标题栏%, %软件配置路径%\个人配置.ini,基础配置,隐藏标题栏
+    IniWrite, %界面风格%, %软件配置路径%\个人配置.ini,基础配置,界面风格
 
     IniWrite, %文件夹名显示在前%, %软件配置路径%\个人配置.ini,基础配置,文件夹名显示在前
 

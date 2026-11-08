@@ -1,13 +1,249 @@
-﻿; 计算字符串表达式（支持加减乘除）
-;MsgBox, % Calculate("3+4*5-6/2")  ; 输出 20
-;MsgBox, % Calculate("10/2 + 3*4")  ; 输出 17
-;MsgBox, % Calculate("7-2*3")       ; 输出 1
-;═════════════════════════════════计算数学表达式═════════════════════════════════════════════════
-#Include *i %A_ScriptDir%\辅助\UIA_Interface.ahk
+﻿#Include *i %A_ScriptDir%\辅助\UIA_Interface.ahk
 #Include *i %A_ScriptDir%\UIA_Interface.ahk
 #Include *i %A_ScriptDir%\辅助\WPS文件对话框.ahk
 #Include *i %A_ScriptDir%\WPS文件对话框.ahk
 
+;跳转完成后，将目标窗口中的文件列表按修改时间排序。
+;标准 Windows 文件窗口直接发送隐藏的文件视图命令，非标准窗口再使用 UI Automation 兜底。
+获取菜单项位置(MenuHandle, TextPattern) {
+    ItemCount := DllCall("GetMenuItemCount", "Ptr", MenuHandle, "Int")
+    Loop, %ItemCount% {
+        Position := A_Index - 1
+        VarSetCapacity(MenuTextBuffer, 1024, 0)
+        DllCall("GetMenuStringW", "Ptr", MenuHandle, "UInt", Position, "Ptr", &MenuTextBuffer, "Int", 512, "UInt", 0x400)
+        MenuText := StrGet(&MenuTextBuffer, "UTF-16")
+        if RegExMatch(MenuText, TextPattern)
+            Return Position
+    }
+    Return -1
+}
+
+设置文件视图菜单透明(MenuHwnd) {
+    static GWL_EXSTYLE := -20
+    static WS_EX_LAYERED := 0x80000
+    static LWA_ALPHA := 0x2
+    GetWindowLongFunction := A_PtrSize = 8 ? "GetWindowLongPtr" : "GetWindowLong"
+    SetWindowLongFunction := A_PtrSize = 8 ? "SetWindowLongPtr" : "SetWindowLong"
+    ExStyle := DllCall(GetWindowLongFunction, "Ptr", MenuHwnd, "Int", GWL_EXSTYLE, "Ptr")
+    if !(ExStyle & WS_EX_LAYERED)
+        DllCall(SetWindowLongFunction, "Ptr", MenuHwnd, "Int", GWL_EXSTYLE, "Ptr", ExStyle | WS_EX_LAYERED, "Ptr")
+    DllCall("SetLayeredWindowAttributes", "Ptr", MenuHwnd, "UInt", 0, "UChar", 0, "UInt", LWA_ALPHA)
+}
+
+隐藏文件视图菜单事件(Hook, Event, MenuHwnd, ObjectId, ChildId, EventThread, EventTime) {
+    if MenuHwnd
+        设置文件视图菜单透明(MenuHwnd)
+}
+
+安装文件视图菜单隐藏钩子(ShellViewHwnd, ByRef CallbackAddress) {
+    WinGet, TargetProcessId, PID, ahk_id %ShellViewHwnd%
+    CallbackAddress := RegisterCallback("隐藏文件视图菜单事件", "Fast")
+    Return DllCall("SetWinEventHook"
+        , "UInt", 0x0006 ; EVENT_SYSTEM_MENUPOPUPSTART
+        , "UInt", 0x0006
+        , "Ptr", 0
+        , "Ptr", CallbackAddress
+        , "UInt", TargetProcessId
+        , "UInt", 0
+        , "UInt", 0 ; WINEVENT_OUTOFCONTEXT
+        , "Ptr")
+}
+
+卸载文件视图菜单隐藏钩子(MenuHook, CallbackAddress) {
+    if MenuHook
+        DllCall("UnhookWinEvent", "Ptr", MenuHook)
+    if CallbackAddress
+        DllCall("GlobalFree", "Ptr", CallbackAddress)
+}
+
+读取文件视图排序匹配状态(ShellViewHwnd, SortDirection, ByRef DateMatches, ByRef DirectionMatches) {
+    DateMatches := false
+    DirectionMatches := false
+
+    ;只打开全透明的根菜单读取勾选位，不打开排序子菜单。
+    SendMessage, 0x111, 0x7023, 0,, ahk_id %ShellViewHwnd% ; FCIDM_SHVIEW_DESELECTALL
+    PostMessage, 0x7B, %ShellViewHwnd%, -1,, ahk_id %ShellViewHwnd% ; WM_CONTEXTMENU
+
+    RootMenuHwnd := 0
+    RootMenu := 0
+    SortPosition := -1
+    Loop, 30 {
+        WinGet, MenuList, List, ahk_class #32768
+        Loop, %MenuList% {
+            CandidateHwnd := MenuList%A_Index%
+            SendMessage, 0x1E1, 0, 0,, ahk_id %CandidateHwnd% ; MN_GETHMENU
+            CandidateMenu := ErrorLevel
+            CandidateSortPosition := 获取菜单项位置(CandidateMenu, "i)^(排序方式|Sort by)")
+            if (CandidateSortPosition >= 0) {
+                设置文件视图菜单透明(CandidateHwnd)
+                RootMenuHwnd := CandidateHwnd
+                RootMenu := CandidateMenu
+                SortPosition := CandidateSortPosition
+                Break
+            }
+        }
+        if RootMenuHwnd
+            Break
+        Sleep, 25
+    }
+    if !RootMenuHwnd
+        Return false
+
+    SortMenu := DllCall("GetSubMenu", "Ptr", RootMenu, "Int", SortPosition, "Ptr")
+    DatePosition := 获取菜单项位置(SortMenu, "i)^(修改日期|Date modified)$")
+    DirectionPattern := (SortDirection = "升序" || SortDirection = "ascending")
+        ? "i)^(递增|Ascending)"
+        : "i)^(递减|Descending)"
+    DirectionPosition := 获取菜单项位置(SortMenu, DirectionPattern)
+
+    StateReadSucceeded := (DatePosition >= 0 && DirectionPosition >= 0)
+    if StateReadSucceeded {
+        DateState := DllCall("GetMenuState", "Ptr", SortMenu, "UInt", DatePosition, "UInt", 0x400, "UInt") ; MF_BYPOSITION
+        DirectionState := DllCall("GetMenuState", "Ptr", SortMenu, "UInt", DirectionPosition, "UInt", 0x400, "UInt")
+        DateMatches := (DateState != 0xFFFFFFFF) && (DateState & 0x8) ; MF_CHECKED
+        DirectionMatches := (DirectionState != 0xFFFFFFFF) && (DirectionState & 0x8)
+    }
+
+    PostMessage, 0x1E6, 0, 0,, ahk_id %RootMenuHwnd% ; MN_CANCELMENUS
+    Sleep, 50
+    Return StateReadSucceeded
+}
+
+发送文件视图排序命令(ShellViewHwnd, ItemPattern) {
+    ;菜单窗口在显示前已被设为全透明，只在后台让系统执行对应排序命令。
+    SendMessage, 0x111, 0x7023, 0,, ahk_id %ShellViewHwnd% ; FCIDM_SHVIEW_DESELECTALL
+    PostMessage, 0x7B, %ShellViewHwnd%, -1,, ahk_id %ShellViewHwnd% ; WM_CONTEXTMENU
+
+    RootMenuHwnd := 0
+    RootMenu := 0
+    SortPosition := -1
+    Loop, 30 {
+        WinGet, MenuList, List, ahk_class #32768
+        Loop, %MenuList% {
+            CandidateHwnd := MenuList%A_Index%
+            SendMessage, 0x1E1, 0, 0,, ahk_id %CandidateHwnd% ; MN_GETHMENU
+            CandidateMenu := ErrorLevel
+            CandidateSortPosition := 获取菜单项位置(CandidateMenu, "i)^(排序方式|Sort by)")
+            if (CandidateSortPosition >= 0) {
+                设置文件视图菜单透明(CandidateHwnd)
+                RootMenuHwnd := CandidateHwnd
+                RootMenu := CandidateMenu
+                SortPosition := CandidateSortPosition
+                Break
+            }
+        }
+        if RootMenuHwnd
+            Break
+        Sleep, 25
+    }
+    if !RootMenuHwnd
+        Return false
+
+    SortMenu := DllCall("GetSubMenu", "Ptr", RootMenu, "Int", SortPosition, "Ptr")
+    ItemPosition := 获取菜单项位置(SortMenu, ItemPattern)
+    if (ItemPosition < 0) {
+        PostMessage, 0x1E6, 0, 0,, ahk_id %RootMenuHwnd% ; MN_CANCELMENUS
+        Return false
+    }
+
+    SendMessage, 0x1E5, %SortPosition%, 0,, ahk_id %RootMenuHwnd% ; MN_SELECTITEM
+    PostMessage, 0x100, 0x27, 0,, ahk_id %RootMenuHwnd% ; VK_RIGHT
+
+    SubMenuHwnd := 0
+    Loop, 30 {
+        WinGet, MenuList, List, ahk_class #32768
+        Loop, %MenuList% {
+            CandidateHwnd := MenuList%A_Index%
+            SendMessage, 0x1E1, 0, 0,, ahk_id %CandidateHwnd%
+            if (ErrorLevel = SortMenu) {
+                设置文件视图菜单透明(CandidateHwnd)
+                SubMenuHwnd := CandidateHwnd
+                Break
+            }
+        }
+        if SubMenuHwnd
+            Break
+        Sleep, 25
+    }
+    if !SubMenuHwnd {
+        PostMessage, 0x1E6, 0, 0,, ahk_id %RootMenuHwnd%
+        Return false
+    }
+
+    SendMessage, 0x1E5, %ItemPosition%, 0,, ahk_id %SubMenuHwnd%
+    PostMessage, 0x100, 0x0D, 0,, ahk_id %SubMenuHwnd% ; VK_RETURN
+    PostMessage, 0x101, 0x0D, 0,, ahk_id %SubMenuHwnd%
+    Sleep, 150
+    PostMessage, 0x1E6, 0, 0,, ahk_id %RootMenuHwnd%
+    Return true
+}
+
+通过隐藏文件视图命令按修改时间排序(ShellViewHwnd, SortDirection) {
+    CallbackAddress := 0
+    MenuHook := 安装文件视图菜单隐藏钩子(ShellViewHwnd, CallbackAddress)
+
+    StateReadSucceeded := false
+    Loop, 2 {
+        StateReadSucceeded := 读取文件视图排序匹配状态(ShellViewHwnd, SortDirection, DateMatches, DirectionMatches)
+        if StateReadSucceeded
+            Break
+        Sleep, 100
+    }
+
+    ;已经是“修改日期＋目标方向”时，只读取状态，不再发送任何排序命令。
+    if (StateReadSucceeded && DateMatches && DirectionMatches) {
+        卸载文件视图菜单隐藏钩子(MenuHook, CallbackAddress)
+        Return true
+    }
+
+    DateSucceeded := StateReadSucceeded && DateMatches
+    if !DateSucceeded {
+        Loop, 3 {
+            if 发送文件视图排序命令(ShellViewHwnd, "i)^(修改日期|Date modified)$") {
+                DateSucceeded := true
+                Break
+            }
+            Sleep, 100
+        }
+    }
+
+    DirectionSucceeded := false
+    if DateSucceeded {
+        DirectionPattern := (SortDirection = "升序" || SortDirection = "ascending")
+            ? "i)^(递增|Ascending)"
+            : "i)^(递减|Descending)"
+        Loop, 3 {
+            if 发送文件视图排序命令(ShellViewHwnd, DirectionPattern) {
+                DirectionSucceeded := true
+                Break
+            }
+            Sleep, 100
+        }
+    }
+
+    卸载文件视图菜单隐藏钩子(MenuHook, CallbackAddress)
+    Return DateSucceeded && DirectionSucceeded
+}
+
+按修改时间排序窗口(WindowHwnd, SortDirection := "降序") {
+    if (!WindowHwnd || !WinExist("ahk_id " WindowHwnd))
+        Return false
+
+    ;只对真正的标准文件列表排序。树状选择窗口和自绘窗口没有此控件，必须立即跳过。
+    ControlGet, ShellViewHwnd, Hwnd,, SHELLDLL_DefView1, ahk_id %WindowHwnd%
+    if !ShellViewHwnd
+        Return false
+
+    ;给文件对话框留出完成路径跳转和刷新的时间。
+    Sleep, 250
+    Return 通过隐藏文件视图命令按修改时间排序(ShellViewHwnd, SortDirection)
+}
+
+; 计算字符串表达式（支持加减乘除）
+;MsgBox, % Calculate("3+4*5-6/2")  ; 输出 20
+;MsgBox, % Calculate("10/2 + 3*4")  ; 输出 17
+;MsgBox, % Calculate("7-2*3")       ; 输出 1
+;═════════════════════════════════计算数学表达式═════════════════════════════════════════════════
 Calculate(expression) {
     ; 1. 去除所有空格
     expression := StrReplace(expression, " ", "")
@@ -2119,31 +2355,31 @@ FilterExistingPaths(paths) {
         currentPath := Trim(A_LoopField)  ; 移除两端空格和换行符
         if (currentPath = "")
             Continue
-            
+
         ; --- 开始清洗路径，提取用于检测的“纯净”路径 ---
         realPath := currentPath
-        
+
         ; 1. 移除 ? 及其后面的自定义名称
         if (Pos := InStr(realPath, "?"))
             realPath := SubStr(realPath, 1, Pos - 1)
-            
+
         ; 2. 移除 = 及其前面的程序专属标识 (如 ahk_exe dopus.exe=)
         if (Pos := InStr(realPath, "="))
             realPath := SubStr(realPath, Pos + 1)
-            
+
         ; 3. 移除双引号
         realPath := StrReplace(realPath, """")
-        
+
         ; 4. 替换双斜杠 \\ 和正斜杠 / 为单斜杠 \
         realPath := RegExReplace(realPath, "\\\\|/", "\")
-        
+
         ; 5. 再次清理两端可能因为拆分而残留的空格
         realPath := Trim(realPath)
         ; ------------------------------------------------
 
         ; 使用最纯粹的路径进行验证，但原封不动地保留包含配置参数的原字符串
-        if (FileExist(realPath))  
-            existingPaths .= currentPath . "`n"  
+        if (FileExist(realPath))
+            existingPaths .= currentPath . "`n"
     }
     return Trim(existingPaths, "`n")  ; 移除末尾多余的换行符
 }
@@ -2356,3 +2592,198 @@ IsProcessElevated(PID) {
 
     return success ? isElevated : -1
 }
+
+;==================================================================================================
+; 【常用路径 · 原始写法归一化】2026-11-07
+; ini 的 [常用路径] / [常用路径N] 段允许这些写法：
+;   %A_Desktop%?桌面                            内置变量 + ?别名
+;   ahk_exe QQ.exe=D:\软件\安装版               程序专属路径
+;   ahk_exe QQ.exe=D:\\软件\\单文件             双斜杠（需开启"替换双斜杠单反斜杠双引号"）
+;   ahk_exe dopus.exe="D:/软件/绿色版"?绿色     双引号 + 正斜杠 + 别名
+; 列表/菜单里显示的是"展开并清洗后的真实路径"，与 ini 里的原始行并不相同。
+; 右键"从常用中移除"拿到的是显示值，直接拿它去 DeleteMatchingLines 做整行精确比较时，
+; 上面几种写法永远匹配不上，删除会静默失败。下面这组函数负责把原始行换算成显示值再比较。
+;==================================================================================================
+
+; 把一行 ini 原始写法换算成列表/菜单中显示的真实路径。
+; 窗口ID      : 与 程序专属路径筛选() 使用同一个窗口 ID
+; 是否替换斜杠: "开启" 时移除双引号并把 \\ 与 / 统一成 \（与读取配置时的处理链保持一致）
+; 严格        : true  = 程序专属行仅在窗口匹配时才返回路径（与用户实际看到的列表一致）
+;               false = 忽略窗口判断，直接剥离 "程序条件=" 前缀（兜底，保证一定能删掉）
+; 返回 "" 表示该行在当前窗口不可见 / 无有效路径
+常用行转显示路径(原始行, 窗口ID := "", 是否替换斜杠 := "关闭", 严格 := true) {
+    行 := Trim(原始行)
+    if (行 = "" or SubStr(行, 1, 1) = ";")
+        return ""
+
+    行 := ReplaceVars(行)
+
+    if (严格) {
+        行 := 程序专属路径筛选(行, 窗口ID)
+        if (行 = "")
+            return ""
+    } else {
+        if (Pos := InStr(行, "="))
+            行 := SubStr(行, Pos + 1)
+    }
+
+    if (行 = "")
+        return ""
+    if (是否替换斜杠 = "开启")
+        行 := RegExReplace(StrReplace(行, """", ""), "\\\\|/", "\")
+    ; 与 更新ListView内容() / ShowMenu 一致：去掉 ?别名，只留真实路径
+    if (Pos := InStr(行, "?"))
+        行 := SubStr(行, 1, Pos - 1)
+
+    return Trim(行)
+}
+
+; Windows 路径比较：忽略首尾空格、忽略大小写、忽略末尾反斜杠
+常用路径相等(a, b) {
+    a := Trim(a), b := Trim(b)
+    if (a = "" or b = "")
+        return false
+    return (RTrim(a, "\") = RTrim(b, "\"))
+}
+
+; 右键可多选，选中值是 `n 分隔的多行
+选中列表包含(选中列表, 值) {
+    Loop, Parse, 选中列表, `n, `r
+    {
+        if (常用路径相等(A_LoopField, 值))
+            return true
+    }
+    return false
+}
+
+; 从指定 ini 段中删除"显示值命中"的原始行，原封不动保留其它行的原始写法。
+; 返回被删除的行数（0 = 没找到）。
+从常用段删除匹配(段名, ini路径, 选中列表, 窗口ID, 是否替换斜杠) {
+    原始段 := Var_Read("", "", 段名, ini路径, "是")
+    if (Trim(原始段) = "")
+        return 0
+
+    待删 := {}
+    命中数 := 0
+
+    ; 第一轮：严格匹配，只删当前窗口真正能看到的行
+    ; 先保存 A_Index，避免被子函数内部的循环改掉
+    Loop, Parse, 原始段, `n, `r
+    {
+        当前行号 := A_Index
+        显示值 := 常用行转显示路径(A_LoopField, 窗口ID, 是否替换斜杠, true)
+        if (显示值 != "" and 选中列表包含(选中列表, 显示值)) {
+            待删[当前行号] := true
+            命中数++
+        }
+    }
+
+    ; 第二轮：严格模式一个都没命中时放宽窗口判断（例如跟随的窗口已切换），
+    ; 保证用户点"从常用中移除"一定能删掉，而不是静默失败。
+    if (命中数 = 0) {
+        Loop, Parse, 原始段, `n, `r
+        {
+            当前行号 := A_Index
+            显示值 := 常用行转显示路径(A_LoopField, 窗口ID, 是否替换斜杠, false)
+            if (显示值 != "" and 选中列表包含(选中列表, 显示值)) {
+                待删[当前行号] := true
+                命中数++
+            }
+        }
+    }
+
+    if (命中数 = 0)
+        return 0
+
+    新段 := ""
+    Loop, Parse, 原始段, `n, `r
+    {
+        当前行号 := A_Index
+        if (RegExMatch(A_LoopField, "^\s*$"))
+            Continue
+        if (待删[当前行号])
+            Continue
+        新段 .= A_LoopField "`n"
+    }
+    新段 := RTrim(新段, "`n")
+
+    IniDelete, %ini路径%, %段名%
+    if (新段 != "")
+        IniWrite, %新段%, %ini路径%, %段名%
+
+    return 命中数
+}
+
+;====================================================================================
+; 【常驻窗口自动恢复】
+;   场景：在设置里点保存、或用托盘菜单切换界面风格时，主程序会整体重启；
+;   重启第一步就把所有常驻跟随窗口 kill 掉，于是「另存为窗口」旁边的常驻窗口
+;   就再也不会自己回来（对话框已经打开过，不会再有弹出事件）。
+;   做法：
+;     1) 常驻窗口显示成功后，把自己的启动参数记到 %A_Temp%\XY_常驻恢复\<目标窗口句柄>.txt
+;     2) 主程序重启时先写一个「正在重载」标记再去关窗口；常驻窗口关闭时看到标记
+;        就保留记录（说明是重启导致的关闭，不是用户主动关的）
+;     3) 主程序启动完按记录重新拉起常驻窗口，并清理掉失效记录
+;====================================================================================
+常驻恢复_目录() {
+    return A_Temp . "\XY_常驻恢复"
+}
+
+常驻恢复_标记路径() {
+    return 常驻恢复_目录() . "\重载中.mark"
+}
+
+常驻恢复_记录路径(目标句柄) {
+    return 常驻恢复_目录() . "\" . 目标句柄 . ".txt"
+}
+
+; 写入/刷新自己的恢复记录（附加参数为启动时的第 3 个参数，如「全局版」）
+常驻恢复_写入(目标句柄, 附加参数 := "") {
+    if (目标句柄 = "")
+        return
+    FileCreateDir, % 常驻恢复_目录()
+    FileDelete, % 常驻恢复_记录路径(目标句柄)
+    FileAppend, %附加参数%, % 常驻恢复_记录路径(目标句柄), UTF-8
+}
+
+; 用户真正关掉这个常驻窗口（或跟随的窗口没了）时删掉记录
+常驻恢复_清除(目标句柄) {
+    if (目标句柄 = "")
+        return
+    FileDelete, % 常驻恢复_记录路径(目标句柄)
+}
+
+; 当前是否处于「主程序正在重载」的过程中
+常驻恢复_重载中() {
+    return FileExist(常驻恢复_标记路径()) ? 1 : 0
+}
+
+; 主程序：开始重载——先打标记，这样随后被关掉的常驻窗口不会删掉记录
+常驻恢复_开始重载() {
+    FileCreateDir, % 常驻恢复_目录()
+    FileDelete, % 常驻恢复_标记路径()
+    FileAppend, 1, % 常驻恢复_标记路径()
+}
+
+; 主程序：启动完成后按记录重新拉起常驻窗口，并清掉标记与失效记录
+常驻恢复_执行(脚本目录) {
+    FileDelete, % 常驻恢复_标记路径()
+    if !InStr(FileExist(常驻恢复_目录()), "D")
+        return
+    Loop, Files, % 常驻恢复_目录() . "\*.txt"
+    {
+        目标句柄 := RegExReplace(A_LoopFileName, "i)\.txt$")
+        FileRead, 附加参数, %A_LoopFileFullPath%
+        附加参数 := Trim(附加参数, " `t`r`n")
+        ; 被跟随的窗口（打开/另存为对话框）还在，才需要恢复；否则记录作废
+        if (目标句柄 = "") or !WinExist("ahk_id " 目标句柄) {
+            FileDelete, %A_LoopFileFullPath%
+            continue
+        }
+        启动参数 := "-常驻窗口跟随 " 目标句柄
+        if (附加参数 != "")
+            启动参数 .= " " 附加参数
+        Run, "%A_AhkPath%" "%脚本目录%\常驻跟随窗口.ahk" %启动参数%
+    }
+}
+
