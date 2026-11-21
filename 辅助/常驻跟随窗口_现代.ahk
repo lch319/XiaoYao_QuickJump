@@ -235,7 +235,8 @@ Return
     global Gui_winID
     ; 不要用 +Resize：那会给无边框窗口加一圈真实 WS_THICKFRAME 边框（约 7px/边），
     ; 窗口外框比客户区大，WinSet Region 的圆角就会错位。缩放由 UI 库自己做八向命中。
-    Gui, +ToolWindow -Caption +HwndGui_winID
+    ; GUI 和 Win32 共用客户区像素，只有自绘布局按 96 DPI 的设计尺寸计算。
+    Gui, +ToolWindow -Caption -DPIScale +HwndGui_winID
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
     现代背景 := 是否深色 ? "1E2128" : "F7F8FA"
@@ -258,12 +259,15 @@ Return
         窗口初始宽度 := 340
     if (窗口初始高度 = "" or 窗口初始高度 = "ERROR" or 窗口初始高度 < 260)
         窗口初始高度 := 400
+    窗口DPI := MUI_窗口DPI(Gui_winID)
+    画布宽度 := Round(窗口初始宽度 * 窗口DPI / 96)
+    画布高度 := Round(窗口初始高度 * 窗口DPI / 96)
 
     ; 自绘画布（SS_BITMAP 静态控件对鼠标透明，消息统一由父窗口处理）
-    Gui, Add, Picture, 0xE x0 y0 w%窗口初始宽度% h%窗口初始高度% Hwnd现代画布句柄
-    Gui, Add, Edit, x40 y80 w200 h28 -E0x200 -VScroll -Wrap Hwnd搜索框ID v搜索框输入值
+    Gui, Add, Picture, 0xE x0 y0 w%画布宽度% h%画布高度% Hwnd现代画布句柄
+    Gui, Add, Edit, x0 y0 w1 h1 -E0x200 -VScroll -Wrap Hwnd搜索框ID v搜索框输入值
 
-    MUI_初始化(Gui_winID, 现代画布句柄, 搜索框ID, 窗口初始宽度, 窗口初始高度)
+    MUI_初始化(Gui_winID, 现代画布句柄, 搜索框ID, 画布宽度, 画布高度, 窗口DPI)
     MUI_主题(是否深色, 窗口背景颜色, 窗口字体颜色, 现代UI强调色)
     MUI.字体 := 现代字体
     MUI.字号 := 窗口字体大小
@@ -276,6 +280,7 @@ Return
     MUI.提示延迟 := 延迟悬停显示
     MUI.单击跳转 := (单击运行跳转 = "开启" and 参数3 != "全局版") ? 1 : 0
     MUI_布局计算()
+    MUI_移动控件()
     gosub, 构建现代标签栏
     MUI_消息注册()
     ; 第三参数在系统 API 里是 fDrawFocused：true=即使获得焦点也显示提示文字。
@@ -297,12 +302,12 @@ Return
     }
     SysGet, VirtualWidth, 78
     SysGet, VirtualHeight, 79
-    if  (VirtualWidth < (窗口初始坐标x + 窗口初始宽度))
-        窗口初始坐标x:= VirtualWidth - 窗口初始宽度 - 5
-    if  (VirtualHeight < (窗口初始坐标y + 窗口初始高度))
-        窗口初始坐标y:= VirtualHeight - 窗口初始高度
+    if  (VirtualWidth < (窗口初始坐标x + 画布宽度))
+        窗口初始坐标x:= VirtualWidth - 画布宽度 - 5
+    if  (VirtualHeight < (窗口初始坐标y + 画布高度))
+        窗口初始坐标y:= VirtualHeight - 画布高度
 
-    Gui, Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
+    Gui, Show,NoActivate h%画布高度% w%画布宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
     SetTimer, ExitScript, Off
 
     If (参数3="自动弹出"){
@@ -324,8 +329,6 @@ Return
         WinSet, Transparent,%现代透明度%,%窗口标题名称% ahk_class AutoHotkeyGUI
     Sleep, 20
 
-    编辑框位置 := MUI_编辑框位置()
-    GuiControl, MoveDraw, %搜索框ID%, % "X" 编辑框位置.X " Y" 编辑框位置.Y " W" 编辑框位置.W " H" 编辑框位置.H
     MUI_应用圆角()
     MUI_添加阴影(Gui_winID)
 
