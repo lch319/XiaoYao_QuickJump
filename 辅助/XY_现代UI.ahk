@@ -10,14 +10,14 @@
 ;   4) 只负责「显示与交互」，业务数据仍由 常驻跟随窗口_现代.ahk 提供。
 ;
 ; 对外接口（由宿主脚本调用）：
-;   MUI_初始化(窗口句柄, 画布句柄, 编辑框句柄, 宽, 高)
+;   MUI_初始化(窗口句柄, 画布句柄, 编辑框句柄, 像素宽, 像素高, DPI)
 ;   MUI_主题(是否深色, 自定义背景, 自定义文字, 强调色)
 ;   MUI_添加标签(显示文本, 回调标签名)
 ;   MUI_消息注册()
 ;   MUI_设置列表(竖杠分隔的字符串, 分隔符)
 ;   MUI_取路径(行号) / MUI_选中路径() / MUI_选择行(行号)
 ;   MUI_滚动(行数) / MUI_标签滚动(像素) / MUI_重绘()
-;   MUI_尺寸变化(宽, 高) / MUI_鼠标在窗口内() / MUI_鼠标在标签区()
+;   MUI_尺寸适配客户区() / MUI_鼠标在窗口内() / MUI_鼠标在标签区()
 ;   MUI_销毁()
 ;
 ; 宿主需要提供的全局变量：Gui_winID、搜索框ID、当前视图标签、文件夹名显示在前
@@ -27,7 +27,7 @@
 ;--------------------------------------------------------------------------------------
 ; 状态与主题
 ;--------------------------------------------------------------------------------------
-MUI_初始化(窗口句柄, 画布句柄, 编辑框句柄, 初始宽, 初始高) {
+MUI_初始化(窗口句柄, 画布句柄, 编辑框句柄, 像素宽, 像素高, DPI) {
     global MUI, MUI_T
     MUI := {}
     MUI.窗口 := 窗口句柄
@@ -35,8 +35,12 @@ MUI_初始化(窗口句柄, 画布句柄, 编辑框句柄, 初始宽, 初始高)
     MUI.搜索框 := 编辑框句柄
     MUI.子类化回调 := ""
     MUI.原窗口过程 := ""
-    MUI.宽 := 初始宽
-    MUI.高 := 初始高
+    MUI.DPI := DPI
+    MUI.缩放 := DPI / 96
+    MUI.像素宽 := 像素宽
+    MUI.像素高 := 像素高
+    MUI.宽 := 像素宽 / MUI.缩放
+    MUI.高 := 像素高 / MUI.缩放
 
     ; 画布是 SS_BITMAP 的 Static 控件，每次换位图（滚动、悬停、缩放都会换）它都会
     ; 整块重画自己的客户区。搜索框是它的「同层兄弟窗口」，默认没有 WS_CLIPSIBLINGS 时
@@ -95,11 +99,9 @@ MUI_初始化(窗口句柄, 画布句柄, 编辑框句柄, 初始宽, 初始高)
     MUI.路径字号 := 9
     MUI.标题字号 := 11
     MUI.说明字号 := 9
-    MUI.缩放 := ((A_ScreenDPI != "" and A_ScreenDPI > 0) ? A_ScreenDPI : 96) / 72
     MUI.边距 := 6              ; 可拖动缩放的边缘宽度
-    MUI._AA图形 := 0           ; 1 = 当前处于几何绘制阶段
     MUI._AA倍率 := 3           ; 超采样倍率，3x 足够平滑且开销可接受
-    MUI._AA实际倍率 := 3
+    MUI._AA实际倍率 := 1
     MUI._AADC := 0             ; 超采样离屏 DC
     MUI._AA位图 := 0
     MUI._AA主DC := 0
@@ -131,6 +133,11 @@ MUI_初始化(窗口句柄, 画布句柄, 编辑框句柄, 初始宽, 初始高)
     MUI_主题(0)
     MUI_布局计算()
     MUI.就绪 := 1
+}
+
+MUI_窗口DPI(窗口句柄) {
+    DPI := DllCall("user32\GetDpiForWindow", "Ptr", 窗口句柄, "UInt")
+    return DPI ? DPI : (A_ScreenDPI ? A_ScreenDPI : 96)
 }
 
 MUI_主题(是否深色, 自定义背景 := "", 自定义文字 := "", 强调色 := "") {
@@ -259,7 +266,7 @@ MUI_设置行距(用户行距 := "") {
 ;--------------------------------------------------------------------------------------
 MUI_创建字体(字号, 粗细 := 400) {
     global MUI
-    像素高 := -Round(字号 * MUI.缩放)
+    像素高 := -Round(字号 * MUI.DPI / 72)
     if (像素高 = 0)
         像素高 := -12
     return DllCall("gdi32\CreateFontW", "Int", 像素高, "Int", 0, "Int", 0, "Int", 0
@@ -270,7 +277,7 @@ MUI_创建字体(字号, 粗细 := 400) {
 MUI_测量文本宽(文本, 字号, 粗细 := 400) {
     global MUI
     static 缓存 := {}
-    键 := MUI.字体 "|" 字号 "|" 粗细 "|" 文本
+    键 := MUI.字体 "|" MUI.DPI "|" 字号 "|" 粗细 "|" 文本
     if 缓存.HasKey(键)
         return 缓存[键]
     屏幕DC := DllCall("user32\GetDC", "Ptr", 0, "Ptr")
@@ -286,8 +293,7 @@ MUI_测量文本宽(文本, 字号, 粗细 := 400) {
         宽 := 0
     if (屏幕DC)
         DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", 屏幕DC)
-    if (宽 < 1)
-        宽 := StrLen(文本) * 8
+    宽 := 宽 > 0 ? Ceil(宽 / MUI.缩放) : StrLen(文本) * 8
     缓存[键] := 宽
     return 宽
 }
@@ -303,7 +309,7 @@ MUI_布局计算() {
     主行 := MUI_文字行高(MUI.字号, 700)
     次行 := MUI_文字行高(MUI.说明字号)
     L.头Y := 0
-    L.头H := MUI.显示标题栏 ? (主行 + 22) : 0
+    L.头H := MUI.显示标题栏 ? Max(主行 + 22, MUI_文字行高(MUI.标题字号, 700) + MUI_文字行高(Max(7, MUI.说明字号 - 1)) + 3) : 0
     L.标签Y := MUI.显示标题栏 ? L.头H + 2 : 6
     L.标签H := 主行 + 12
     L.搜索Y := L.标签Y + L.标签H + 4
@@ -329,9 +335,8 @@ MUI_布局计算() {
 MUI_编辑框位置() {
     global MUI
     L := MUI.布局
-    ; 原来左侧给放大镜留了 32px，图标去掉后这段空档没有意义，
-    ; 只留 14 的圆角内缩，输入区整体左移并加宽
-    return {"X":L.搜索X + 14, "Y":L.搜索Y + 3, "W":L.搜索W - 14 - 10, "H":L.搜索H - 6}
+    H := MUI_文字行高(MUI.字号) + 2
+    return {"X":L.搜索X + 14, "Y":L.搜索Y + Floor((L.搜索H - H) / 2), "W":L.搜索W - 24, "H":H}
 }
 
 ; 把搜索框提到所有兄弟窗口的最顶层（HWND_TOP = 0）。不移动、不改尺寸、不抢焦点：
@@ -344,28 +349,82 @@ MUI_搜索框置顶() {
         , "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 }
 
-MUI_尺寸变化(新宽, 新高) {
-    global MUI, Gui_winID, 搜索框ID
-    if (!MUI.就绪) or (新宽 < 100) or (新高 < 100)
+MUI_尺寸适配客户区() {
+    global MUI
+    if (!MUI.就绪)
         return
-    MUI.宽 := 新宽
-    MUI.高 := 新高
-    GuiControl, MoveDraw, % MUI.画布, % "x0 y0 W" 新宽 " H" 新高
-    P := MUI_编辑框位置()
-    GuiControl, MoveDraw, %搜索框ID%, % "X" P.X " Y" P.Y " W" P.W " H" P.H
-    ; MoveDraw 只改位置尺寸，正常不会动 Z 序；这里再压一次是防止某些系统上
-    ; 控件重建后把 Static 又排回上层
-    MUI_搜索框置顶()
-    MUI_布局计算()
-    MUI_应用圆角()
-    MUI_重绘()
+    VarSetCapacity(客户区, 16, 0)
+    if !DllCall("user32\GetClientRect", "Ptr", MUI.窗口, "Ptr", &客户区)
+        return
+    新宽 := NumGet(客户区, 8, "Int"), 新高 := NumGet(客户区, 12, "Int")
+    MUI_更新尺寸(新宽, 新高)
 }
 
-MUI_应用圆角() {
-    global MUI, Gui_winID
+MUI_更新尺寸(新宽, 新高, 新X := "", 新Y := "") {
+    global MUI
+    if (新宽 < 100 or 新高 < 100 or (新宽 = MUI.像素宽 and 新高 = MUI.像素高))
+        return
+    原线程设置 := A_IsCritical
+    Critical
+    try {
+        旧宽 := MUI.像素宽, 旧高 := MUI.像素高
+        旧顶部 := MUI.顶部行, 旧标签滚动 := MUI.标签滚动
+        MUI_设置布局尺寸(新宽, 新高)
+        ; 拖动时先绘制完整位图，把实际窗口尺寸变化留到贴图前。
+        位图 := MUI_绘制位图()
+        if (新X != "" and (!位图 or !DllCall("user32\SetWindowPos", "Ptr", MUI.窗口, "Ptr", 0
+            , "Int", 新X, "Int", 新Y, "Int", 新宽, "Int", 新高, "UInt", 0x2014))) {
+            if (位图)
+                DllCall("gdi32\DeleteObject", "Ptr", 位图)
+            MUI.顶部行 := 旧顶部, MUI.标签滚动 := 旧标签滚动
+            MUI_设置布局尺寸(旧宽, 旧高)
+            return
+        }
+        MUI_移动控件(新宽 != 旧宽)
+        MUI_应用圆角(false)
+        if (位图)
+            MUI_贴图(位图)
+        if (新宽 != 旧宽)
+            DllCall("user32\RedrawWindow", "Ptr", MUI.搜索框, "Ptr", 0, "Ptr", 0, "UInt", 0x0001|0x0100|0x0004)
+    } finally {
+        Critical, % 原线程设置 ? 原线程设置 : "Off"
+    }
+}
+
+MUI_设置布局尺寸(宽, 高) {
+    global MUI
+    MUI.像素宽 := 宽
+    MUI.像素高 := 高
+    MUI.宽 := 宽 / MUI.缩放
+    MUI.高 := 高 / MUI.缩放
+    MUI_布局计算()
+}
+
+MUI_移动控件(移动搜索框 := true) {
+    global MUI
+    ; SWP_NOREDRAW | SWP_NOZORDER | SWP_NOACTIVATE：新位图贴好后再画控件。
+    DllCall("user32\SetWindowPos", "Ptr", MUI.画布, "Ptr", 0
+        , "Int", 0, "Int", 0, "Int", MUI.像素宽, "Int", MUI.像素高, "UInt", 0x1C)
+    if (!移动搜索框)
+        return
+    P := MUI_编辑框位置()
+    S := MUI.缩放
+    X := Round(P.X * S), Y := Round(P.Y * S)
+    W := Round((P.X + P.W) * S) - X, H := Round((P.Y + P.H) * S) - Y
+    DllCall("user32\SetWindowPos", "Ptr", MUI.搜索框, "Ptr", 0
+        , "Int", X, "Int", Y, "Int", W, "Int", H, "UInt", 0x1C)
+}
+
+MUI_应用圆角(立即重绘 := true) {
+    global MUI
     ; 圆角半径不宜过大：Region 会把圆角外区域裁掉，右下角的缩放热区会被削掉
-    区域参数 := "0-0 W" MUI.宽 " H" MUI.高 " R7-7"
-    WinSet, Region, %区域参数%, % "ahk_id " Gui_winID
+    圆角 := Round(7 * MUI.缩放)
+    ; 圆角区域的右、下边界不含最后一个像素。
+    区域 := DllCall("gdi32\CreateRoundRectRgn", "Int", 0, "Int", 0
+        , "Int", MUI.像素宽 + 1, "Int", MUI.像素高 + 1, "Int", 圆角, "Int", 圆角, "Ptr")
+    ; SetWindowRgn 成功后由系统接管区域句柄。
+    if (区域 and !DllCall("user32\SetWindowRgn", "Ptr", MUI.窗口, "Ptr", 区域, "Int", 立即重绘))
+        DllCall("gdi32\DeleteObject", "Ptr", 区域)
 }
 
 MUI_添加阴影(窗口句柄) {
@@ -549,17 +608,14 @@ MUI_确保标签可见() {
 ;--------------------------------------------------------------------------------------
 MUI_AA开始(hdc) {
     global MUI, MUI_T
-    MUI._AADC := 0
-    MUI._AA位图 := 0
+    MUI._AA主DC := hdc
     倍 := MUI._AA倍率
     ; 大窗口降到 2x：离屏位图从 9 倍降到 4 倍面积，缩放开销明显下降，
     ; 而 2x 对圆角、图标的平滑度提升已经足够肉眼分辨
-    if (MUI.宽 * MUI.高 > 180000 and 倍 > 2)
+    if (MUI.像素宽 * MUI.像素高 > 180000 and 倍 > 2)
         倍 := 2
-    if (倍 < 2)
-        倍 := 3
-    宽 := MUI.宽 * 倍
-    高 := MUI.高 * 倍
+    宽 := MUI.像素宽 * 倍
+    高 := MUI.像素高 * 倍
     dc := DllCall("gdi32\CreateCompatibleDC", "Ptr", hdc, "Ptr")
     位图 := DllCall("gdi32\CreateCompatibleBitmap", "Ptr", hdc, "Int", 宽, "Int", 高, "Ptr")
     if (!dc or !位图) {
@@ -570,27 +626,11 @@ MUI_AA开始(hdc) {
         return 0
     }
     旧位图 := DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 位图, "Ptr")
-    ; 逻辑坐标 → 设备坐标放大 N 倍：后面所有绘制照旧用原坐标
-    DllCall("gdi32\SetMapMode", "Ptr", dc, "Int", 8)                 ; MM_ANISOTROPIC
-    DllCall("gdi32\SetWindowExtEx", "Ptr", dc, "Int", 1, "Int", 1, "Ptr", 0)
-    DllCall("gdi32\SetViewportExtEx", "Ptr", dc, "Int", 倍, "Int", 倍, "Ptr", 0)
-    DllCall("gdi32\SetBkMode", "Ptr", dc, "Int", 1)
-    ; 先铺一层窗口底色，否则没画到的区域缩小后会留黑边
-    画刷 := DllCall("gdi32\CreateSolidBrush", "UInt", MUI_G_BGR(MUI_T.背景), "Ptr")
-    VarSetCapacity(底色区, 16, 0)
-    NumPut(0, 底色区, 0, "Int")
-    NumPut(0, 底色区, 4, "Int")
-    NumPut(MUI.宽, 底色区, 8, "Int")
-    NumPut(MUI.高, 底色区, 12, "Int")
-    DllCall("user32\FillRect", "Ptr", dc, "Ptr", &底色区, "Ptr", 画刷)
-    DllCall("gdi32\DeleteObject", "Ptr", 画刷)
-
-    MUI._AA主DC := hdc
     MUI._AADC := dc
     MUI._AA位图 := 位图
     MUI._AA旧位图 := 旧位图
     MUI._AA实际倍率 := 倍
-    MUI._AA图形 := 1
+    MUI_G_矩形(dc, 0, 0, MUI.宽, MUI.高, MUI_T.背景)
     return 1
 }
 
@@ -599,21 +639,19 @@ MUI_AA结束() {
     if (!MUI._AADC)
         return
     倍 := MUI._AA实际倍率
-    DllCall("gdi32\SetMapMode", "Ptr", MUI._AADC, "Int", 1)          ; 复位成 MM_TEXT
     ; 注意顺序：位图必须还选在这个 DC 里的时候做 StretchBlt，
     ; 先 SelectObject 回旧位图的话，源就变成 1x1 默认位图，整层内容会凭空消失。
     DllCall("gdi32\SetStretchBltMode", "Ptr", MUI._AA主DC, "Int", 4) ; HALFTONE
     VarSetCapacity(旧原点, 8, 0)
     DllCall("gdi32\SetBrushOrgEx", "Ptr", MUI._AA主DC, "Int", 0, "Int", 0, "Ptr", &旧原点)
-    DllCall("gdi32\StretchBlt", "Ptr", MUI._AA主DC, "Int", 0, "Int", 0, "Int", MUI.宽, "Int", MUI.高
-        , "Ptr", MUI._AADC, "Int", 0, "Int", 0, "Int", MUI.宽 * 倍, "Int", MUI.高 * 倍, "UInt", 0x00CC0020)
-    DllCall("gdi32\SetStretchBltMode", "Ptr", MUI._AA主DC, "Int", 0)
+    DllCall("gdi32\StretchBlt", "Ptr", MUI._AA主DC, "Int", 0, "Int", 0, "Int", MUI.像素宽, "Int", MUI.像素高
+        , "Ptr", MUI._AADC, "Int", 0, "Int", 0, "Int", MUI.像素宽 * 倍, "Int", MUI.像素高 * 倍, "UInt", 0x00CC0020)
     DllCall("gdi32\SelectObject", "Ptr", MUI._AADC, "Ptr", MUI._AA旧位图, "Ptr")
     DllCall("gdi32\DeleteObject", "Ptr", MUI._AA位图)
     DllCall("gdi32\DeleteDC", "Ptr", MUI._AADC)
     MUI._AADC := 0
     MUI._AA位图 := 0
-    MUI._AA图形 := 0
+    MUI._AA实际倍率 := 1
 }
 
 MUI_G_AA线(x1, y1, x2, y2, 线宽, 色值) {
@@ -621,13 +659,14 @@ MUI_G_AA线(x1, y1, x2, y2, 线宽, 色值) {
     目标 := MUI._AADC ? MUI._AADC : MUI._AA主DC
     if (!目标)
         return 0
-    笔宽 := Round(线宽)
+    倍 := MUI.缩放 * MUI._AA实际倍率
+    笔宽 := Round(线宽 * 倍)
     if (笔宽 < 1)
         笔宽 := 1
     画笔 := DllCall("gdi32\CreatePen", "Int", 0, "Int", 笔宽, "UInt", MUI_G_BGR(色值), "Ptr")
     旧笔 := DllCall("gdi32\SelectObject", "Ptr", 目标, "Ptr", 画笔, "Ptr")
-    DllCall("gdi32\MoveToEx", "Ptr", 目标, "Int", Round(x1), "Int", Round(y1), "Ptr", 0)
-    DllCall("gdi32\LineTo", "Ptr", 目标, "Int", Round(x2), "Int", Round(y2))
+    DllCall("gdi32\MoveToEx", "Ptr", 目标, "Int", Round(x1 * 倍), "Int", Round(y1 * 倍), "Ptr", 0)
+    DllCall("gdi32\LineTo", "Ptr", 目标, "Int", Round(x2 * 倍), "Int", Round(y2 * 倍))
     DllCall("gdi32\SelectObject", "Ptr", 目标, "Ptr", 旧笔, "Ptr")
     DllCall("gdi32\DeleteObject", "Ptr", 画笔)
     return 1
@@ -644,46 +683,45 @@ MUI_G_BGR(色值) {
 }
 
 MUI_G_矩形(dc, px, py, pw, ph, 色值) {
+    global MUI
+    if (MUI._AADC)
+        dc := MUI._AADC
+    倍 := MUI.缩放 * MUI._AA实际倍率
     VarSetCapacity(区域, 16, 0)
-    NumPut(px, 区域, 0, "Int")
-    NumPut(py, 区域, 4, "Int")
-    NumPut(px + pw, 区域, 8, "Int")
-    NumPut(py + ph, 区域, 12, "Int")
+    NumPut(Round(px * 倍), 区域, 0, "Int")
+    NumPut(Round(py * 倍), 区域, 4, "Int")
+    NumPut(Round((px + pw) * 倍), 区域, 8, "Int")
+    NumPut(Round((py + ph) * 倍), 区域, 12, "Int")
     画刷 := DllCall("gdi32\CreateSolidBrush", "UInt", MUI_G_BGR(色值), "Ptr")
     DllCall("user32\FillRect", "Ptr", dc, "Ptr", &区域, "Ptr", 画刷)
     DllCall("gdi32\DeleteObject", "Ptr", 画刷)
 }
 
 MUI_G_圆角(dc, px, py, pw, ph, 半径, 色值) {
-    global MUI
     if (pw <= 0 or ph <= 0)
         return
-    ; 几何一律画到 3 倍超采样位图上，缩小后天然带抗锯齿
-    if (MUI._AADC)
-        dc := MUI._AADC
-    颜色 := MUI_G_BGR(色值)
-    画刷 := DllCall("gdi32\CreateSolidBrush", "UInt", 颜色, "Ptr")
-    画笔 := DllCall("gdi32\CreatePen", "Int", 5, "Int", 0, "UInt", 颜色, "Ptr")
-    旧刷 := DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 画刷, "Ptr")
-    旧笔 := DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 画笔, "Ptr")
-    DllCall("gdi32\RoundRect", "Ptr", dc, "Int", px, "Int", py, "Int", px + pw, "Int", py + ph, "Int", 半径 * 2, "Int", 半径 * 2)
-    DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 旧刷, "Ptr")
-    DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 旧笔, "Ptr")
+    画刷 := DllCall("gdi32\CreateSolidBrush", "UInt", MUI_G_BGR(色值), "Ptr")
+    MUI_G_画圆角(dc, px, py, pw, ph, 半径, 0, 色值, 画刷)
     DllCall("gdi32\DeleteObject", "Ptr", 画刷)
-    DllCall("gdi32\DeleteObject", "Ptr", 画笔)
 }
 
 ; 圆角描边（1px 边框）：同样画进超采样层，圆角处不会有硬阶梯
 MUI_G_圆角边框(dc, px, py, pw, ph, 半径, 线宽, 色值) {
+    空刷 := DllCall("gdi32\GetStockObject", "Int", 5, "Ptr")   ; NULL_BRUSH
+    MUI_G_画圆角(dc, px, py, pw, ph, 半径, 线宽, 色值, 空刷)
+}
+
+MUI_G_画圆角(dc, px, py, pw, ph, 半径, 线宽, 色值, 画刷) {
     global MUI
     if (MUI._AADC)
         dc := MUI._AADC
-    颜色 := MUI_G_BGR(色值)
-    画笔 := DllCall("gdi32\CreatePen", "Int", 0, "Int", 线宽, "UInt", 颜色, "Ptr")
-    空刷 := DllCall("gdi32\GetStockObject", "Int", 5, "Ptr")   ; NULL_BRUSH
-    旧刷 := DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 空刷, "Ptr")
+    倍 := MUI.缩放 * MUI._AA实际倍率
+    画笔 := DllCall("gdi32\CreatePen", "Int", 线宽 ? 0 : 5, "Int", Round(线宽 * 倍), "UInt", MUI_G_BGR(色值), "Ptr")
+    旧刷 := DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 画刷, "Ptr")
     旧笔 := DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 画笔, "Ptr")
-    DllCall("gdi32\RoundRect", "Ptr", dc, "Int", px, "Int", py, "Int", px + pw, "Int", py + ph, "Int", 半径 * 2, "Int", 半径 * 2)
+    直径 := Round(半径 * 2 * 倍)
+    DllCall("gdi32\RoundRect", "Ptr", dc, "Int", Round(px * 倍), "Int", Round(py * 倍)
+        , "Int", Round((px + pw) * 倍), "Int", Round((py + ph) * 倍), "Int", 直径, "Int", 直径)
     DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 旧刷, "Ptr")
     DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 旧笔, "Ptr")
     DllCall("gdi32\DeleteObject", "Ptr", 画笔)
@@ -695,10 +733,10 @@ MUI_G_圆角边框(dc, px, py, pw, ph, 半径, 线宽, 色值) {
 MUI_文字度量(字号, 粗细 := 400) {
     global MUI
     static 缓存 := {}
-    键 := MUI.字体 "|" 字号 "|" 粗细 "|" Round(MUI.缩放 * 100)
+    键 := MUI.字体 "|" MUI.DPI "|" 字号 "|" 粗细
     if 缓存.HasKey(键)
         return 缓存[键]
-    结果 := {"高":Round(字号 * MUI.缩放), "上沿":Round(字号 * MUI.缩放 * 0.75)}
+    结果 := {"高":Round(字号 * MUI.DPI / 72), "上沿":Round(字号 * MUI.DPI / 96)}
     屏幕DC := DllCall("user32\GetDC", "Ptr", 0, "Ptr")
     字体 := MUI_创建字体(字号, 粗细)
     if (字体 and 屏幕DC) {
@@ -721,8 +759,9 @@ MUI_文字度量(字号, 粗细 := 400) {
 
 ; 一行文字所需的高度（含上下各 1px 余量），布局计算时用它来排行距
 MUI_文字行高(字号, 粗细 := 400) {
+    global MUI
     度量 := MUI_文字度量(字号, 粗细)
-    return 度量.高 + 2
+    return Ceil(度量.高 / MUI.缩放) + 2
 }
 
 ; 省略 := 0x8000(DT_END_ELLIPSIS，默认截尾部) / 0x4000(DT_PATH_ELLIPSIS，按 \ 截中间)
@@ -734,15 +773,17 @@ MUI_G_文字(dc, px, py, pw, ph, 文本, 色值, 字号, 粗细 := 400, 对齐 :
     if (!字体)
         return
     度量 := MUI_文字度量(字号, 粗细)
-    文字Y := py + Floor((ph - 度量.高) / 2)
+    倍 := MUI.缩放
+    上 := Round(py * 倍), 下 := Round((py + ph) * 倍)
+    文字Y := 上 + Floor((下 - 上 - 度量.高) / 2)
     旧字体 := DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 字体, "Ptr")
     DllCall("gdi32\SetBkMode", "Ptr", dc, "Int", 1)
     DllCall("gdi32\SetTextColor", "Ptr", dc, "UInt", MUI_G_BGR(色值))
     VarSetCapacity(区域, 16, 0)
-    NumPut(px, 区域, 0, "Int")
+    NumPut(Round(px * 倍), 区域, 0, "Int")
     NumPut(文字Y, 区域, 4, "Int")
-    NumPut(px + pw, 区域, 8, "Int")
-    NumPut(py + ph, 区域, 12, "Int")
+    NumPut(Round((px + pw) * 倍), 区域, 8, "Int")
+    NumPut(下, 区域, 12, "Int")
     标志 := 0x0 | 0x20 | 0x800 | 省略 | 对齐      ; 顶部对齐 / 单行 / 不解析& / 省略号方式
     DllCall("user32\DrawTextW", "Ptr", dc, "Str", 文本, "Int", -1, "Ptr", &区域, "UInt", 标志)
     DllCall("gdi32\SelectObject", "Ptr", dc, "Ptr", 旧字体, "Ptr")
@@ -751,10 +792,11 @@ MUI_G_文字(dc, px, py, pw, ph, 文本, 色值, 字号, 粗细 := 400, 对齐 :
 
 MUI_G_裁剪(dc, px, py, pw, ph) {
     global MUI
-    ; Region 用的是设备坐标，画在 3 倍位图上就要乘 3
+    ; 裁剪区与当前位图使用同一比例，文字与几何各自在设备像素内裁剪。
     目标 := MUI._AADC ? MUI._AADC : dc
-    倍 := MUI._AADC ? MUI._AA倍率 : 1
-    区域 := DllCall("gdi32\CreateRectRgn", "Int", px * 倍, "Int", py * 倍, "Int", (px + pw) * 倍, "Int", (py + ph) * 倍, "Ptr")
+    倍 := MUI.缩放 * MUI._AA实际倍率
+    区域 := DllCall("gdi32\CreateRectRgn", "Int", Round(px * 倍), "Int", Round(py * 倍)
+        , "Int", Round((px + pw) * 倍), "Int", Round((py + ph) * 倍), "Ptr")
     DllCall("gdi32\SelectClipRgn", "Ptr", 目标, "Ptr", 区域)
     DllCall("gdi32\DeleteObject", "Ptr", 区域)
 }
@@ -769,19 +811,35 @@ MUI_G_取消裁剪(dc) {
 ; 主绘制
 ;--------------------------------------------------------------------------------------
 MUI_重绘() {
-    global MUI, MUI_T, Gui_winID
+    global MUI, Gui_winID
     if (!MUI.就绪) or (!MUI.画布) or !WinExist("ahk_id " Gui_winID)
         return
+    原线程设置 := A_IsCritical
+    Critical
+    try {
+        位图 := MUI_绘制位图()
+        if (位图)
+            MUI_贴图(位图)
+    } finally {
+        Critical, % 原线程设置 ? 原线程设置 : "Off"
+    }
+}
+
+MUI_绘制位图() {
+    global MUI, MUI_T
     if (MUI.宽 < 60 or MUI.高 < 60)
-        return
+        return 0
     MUI_确保标签可见()
     屏幕DC := DllCall("user32\GetDC", "Ptr", 0, "Ptr")
+    if (!屏幕DC)
+        return 0
     内存DC := DllCall("gdi32\CreateCompatibleDC", "Ptr", 屏幕DC, "Ptr")
-    位图 := DllCall("gdi32\CreateCompatibleBitmap", "Ptr", 屏幕DC, "Int", MUI.宽, "Int", MUI.高, "Ptr")
+    位图 := 内存DC ? DllCall("gdi32\CreateCompatibleBitmap", "Ptr", 屏幕DC, "Int", MUI.像素宽, "Int", MUI.像素高, "Ptr") : 0
     if (!位图) {
-        DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
+        if (内存DC)
+            DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
         DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", 屏幕DC)
-        return
+        return 0
     }
     旧位图 := DllCall("gdi32\SelectObject", "Ptr", 内存DC, "Ptr", 位图, "Ptr")
 
@@ -794,17 +852,19 @@ MUI_重绘() {
     MUI_绘制文字(内存DC)
 
     DllCall("gdi32\SelectObject", "Ptr", 内存DC, "Ptr", 旧位图, "Ptr")
+    DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
+    DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", 屏幕DC)
+    return 位图
+}
+
+MUI_贴图(位图) {
+    global MUI
     旧句柄 := DllCall("user32\SendMessage", "Ptr", MUI.画布, "UInt", 0x172, "Ptr", 0, "Ptr", 位图, "Ptr")
     if (旧句柄)
         DllCall("gdi32\DeleteObject", "Ptr", 旧句柄)
-    DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
-    DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", 屏幕DC)
 
-    ; 换完位图立刻把搜索框同步重画一次。
-    ; WS_CLIPSIBLINGS 已经能防止画布盖住搜索框，但 Static 贴图那一帧和搜索框重画
-    ; 之间仍可能有一瞬间的重叠（不同系统上表现不同），补这一下就彻底看不到闪空了。
-    if (MUI.搜索框)
-        DllCall("user32\RedrawWindow", "Ptr", MUI.搜索框, "Ptr", 0, "Ptr", 0, "UInt", 0x0001|0x0100|0x0080)
+    ; 位图已覆盖整个画布，取消 Static 换图时排队的背景擦除。
+    DllCall("user32\RedrawWindow", "Ptr", MUI.画布, "Ptr", 0, "Ptr", 0, "UInt", 0x0001|0x0020|0x0100)
 }
 
 ;--------------------------------------------------------------------------------------
@@ -1096,7 +1156,8 @@ MUI_双击间隔() {
 MUI_命中(px, py) {
     global MUI
     L := MUI.布局
-    if (MUI.显示标题栏 and py >= 6 and py <= 32) {
+    按钮Y := L.头Y + Floor((L.头H - 24) / 2)
+    if (MUI.显示标题栏 and py >= 按钮Y and py < 按钮Y + 24) {
         if (px >= MUI.宽 - 34 and px <= MUI.宽 - 10)
             return "关闭"
         if (px >= MUI.宽 - 62 and px <= MUI.宽 - 38)
@@ -1151,7 +1212,15 @@ MUI_鼠标在标签区() {
     CoordMode, Mouse, Screen
     MouseGetPos, 鼠标X, 鼠标Y
     WinGetPos, 窗口X, 窗口Y, , , ahk_id %Gui_winID%
-    return (鼠标Y - 窗口Y >= MUI.布局.标签Y and 鼠标Y - 窗口Y < MUI.布局.标签Y + MUI.布局.标签H)
+    局部Y := (鼠标Y - 窗口Y) / MUI.缩放
+    return (局部Y >= MUI.布局.标签Y and 局部Y < MUI.布局.标签Y + MUI.布局.标签H)
+}
+
+MUI_鼠标消息坐标(l参数, ByRef x, ByRef y) {
+    global MUI
+    ; lParam 的两个坐标均为有符号 16 位，拖动时可能落到窗口外。
+    x := ((l参数 & 0x7FFF) - (l参数 & 0x8000)) / MUI.缩放
+    y := (((l参数 >> 16) & 0x7FFF) - ((l参数 >> 16) & 0x8000)) / MUI.缩放
 }
 
 ;--------------------------------------------------------------------------------------
@@ -1244,7 +1313,7 @@ MUI_WM_SETCURSOR(w参数, l参数, 消息号, 句柄) {
     CoordMode, Mouse, Screen
     MouseGetPos, 屏幕X, 屏幕Y
     WinGetPos, 窗口X, 窗口Y, , , ahk_id %Gui_winID%
-    命中 := MUI_命中(屏幕X - 窗口X, 屏幕Y - 窗口Y)
+    命中 := MUI_命中((屏幕X - 窗口X) / MUI.缩放, (屏幕Y - 窗口Y) / MUI.缩放)
     if (SubStr(命中, 1, 2) = "缩放") {
         光标号 := MUI_缩放光标(SubStr(命中, 3))
         if (光标号)
@@ -1265,8 +1334,7 @@ MUI_WM_MOUSEMOVE(w参数, l参数, 消息号, 句柄) {
     global MUI, Gui_winID
     if (!MUI.就绪 or 句柄 != Gui_winID)
         return 0
-    鼠标X := l参数 & 0xFFFF
-    鼠标Y := (l参数 >> 16) & 0xFFFF
+    MUI_鼠标消息坐标(l参数, 鼠标X, 鼠标Y)
     if (MUI.拖动模式 = "拖动") {
         CoordMode, Mouse, Screen
         MouseGetPos, 绝对X, 绝对Y
@@ -1282,29 +1350,19 @@ MUI_WM_MOUSEMOVE(w参数, l参数, 消息号, 句柄) {
         新Y := MUI.缩放窗Y
         新W := MUI.缩放窗W
         新高 := MUI.缩放窗H
+        最小宽 := Round(300 * MUI.缩放)
+        最小高 := Round(240 * MUI.缩放)
         if InStr(MUI.缩放方向名, "左") {
-            新W := MUI.缩放窗W - 位移X
-            if (新W < 300) {
-                新W := 300
-                新X := MUI.缩放窗X + MUI.缩放窗W - 300
-            } Else
-                新X := MUI.缩放窗X + 位移X
+            新W := Max(最小宽, MUI.缩放窗W - 位移X)
+            新X := MUI.缩放窗X + MUI.缩放窗W - 新W
         } Else if InStr(MUI.缩放方向名, "右")
-            新W := MUI.缩放窗W + 位移X
+            新W := Max(最小宽, MUI.缩放窗W + 位移X)
         if InStr(MUI.缩放方向名, "上") {
-            新高 := MUI.缩放窗H - 位移Y
-            if (新高 < 240) {
-                新高 := 240
-                新Y := MUI.缩放窗Y + MUI.缩放窗H - 240
-            } Else
-                新Y := MUI.缩放窗Y + 位移Y
+            新高 := Max(最小高, MUI.缩放窗H - 位移Y)
+            新Y := MUI.缩放窗Y + MUI.缩放窗H - 新高
         } Else if InStr(MUI.缩放方向名, "下")
-            新高 := MUI.缩放窗H + 位移Y
-        if (新W < 300)
-            新W := 300
-        if (新高 < 240)
-            新高 := 240
-        WinMove, ahk_id %Gui_winID%, , %新X%, %新Y%, %新W%, %新高%
+            新高 := Max(最小高, MUI.缩放窗H + 位移Y)
+        MUI_更新尺寸(新W, 新高, 新X, 新Y)
         return 0
     }
     if (MUI.拖动模式 = "滚动条") {
@@ -1348,8 +1406,7 @@ MUI_WM_LBUTTONDOWN(w参数, l参数, 消息号, 句柄) {
     global MUI, Gui_winID
     if (!MUI.就绪 or 句柄 != Gui_winID)
         return 0
-    鼠标X := l参数 & 0xFFFF
-    鼠标Y := (l参数 >> 16) & 0xFFFF
+    MUI_鼠标消息坐标(l参数, 鼠标X, 鼠标Y)
     命中 := MUI_命中(鼠标X, 鼠标Y)
 
     if (命中 = "关闭") {
@@ -1431,8 +1488,7 @@ MUI_WM_LBUTTONDBLCLK(w参数, l参数, 消息号, 句柄) {
     global MUI, Gui_winID
     if (!MUI.就绪 or 句柄 != Gui_winID)
         return 0
-    鼠标X := l参数 & 0xFFFF
-    鼠标Y := (l参数 >> 16) & 0xFFFF
+    MUI_鼠标消息坐标(l参数, 鼠标X, 鼠标Y)
     命中 := MUI_命中(鼠标X, 鼠标Y)
     if (SubStr(命中, 1, 2) = "行:") {
         行号 := SubStr(命中, 3) + 0
@@ -1450,9 +1506,13 @@ MUI_WM_LBUTTONUP(w参数, l参数, 消息号, 句柄) {
     if (!MUI.就绪)
         return 0
     if (MUI.拖动模式 != "") {
+        缩放结束 := (MUI.拖动模式 = "缩放")
+        if (缩放结束)
+            MUI_WM_MOUSEMOVE(w参数, l参数, 消息号, 句柄)
         MUI.拖动模式 := ""
         DllCall("user32\ReleaseCapture")
-        MUI_重绘()
+        if (!缩放结束)
+            MUI_重绘()
     }
     return 0
 }
@@ -1461,8 +1521,7 @@ MUI_WM_RBUTTONDOWN(w参数, l参数, 消息号, 句柄) {
     global MUI, Gui_winID
     if (!MUI.就绪 or 句柄 != Gui_winID)
         return 0
-    鼠标X := l参数 & 0xFFFF
-    鼠标Y := (l参数 >> 16) & 0xFFFF
+    MUI_鼠标消息坐标(l参数, 鼠标X, 鼠标Y)
     命中 := MUI_命中(鼠标X, 鼠标Y)
     if (SubStr(命中, 1, 2) = "行:") {
         MUI.右键行 := SubStr(命中, 3) + 0

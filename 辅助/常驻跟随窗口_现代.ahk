@@ -47,8 +47,9 @@ if (参数1="-常驻窗口跟随"){
     ;常驻搜索窗口呼出热键=^d
 
     ;父窗口X, 父窗口Y, 父窗口W, 父窗口H
-    global 窗口初始坐标x:= "父窗口X - 10 + 父窗口W"
-    global 窗口初始坐标y:= "父窗口Y + 50"
+    global 窗口初始坐标x:= "父窗口X + 父窗口W"
+    global 窗口初始坐标y:= "父窗口Y + 20"
+    global 默认右侧贴边 := false, 默认贴边高度 := false
 
     global 窗口初始宽度:= "240"
     global 窗口初始高度:= "360"
@@ -235,7 +236,8 @@ Return
     global Gui_winID
     ; 不要用 +Resize：那会给无边框窗口加一圈真实 WS_THICKFRAME 边框（约 7px/边），
     ; 窗口外框比客户区大，WinSet Region 的圆角就会错位。缩放由 UI 库自己做八向命中。
-    Gui, +ToolWindow -Caption +HwndGui_winID
+    ; GUI 和 Win32 共用客户区像素，只有自绘布局按 96 DPI 的设计尺寸计算。
+    Gui, +ToolWindow -Caption -DPIScale +0x02000000 +HwndGui_winID  ; WS_CLIPCHILDREN
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
     现代背景 := 是否深色 ? "1E2128" : "F7F8FA"
@@ -258,12 +260,15 @@ Return
         窗口初始宽度 := 340
     if (窗口初始高度 = "" or 窗口初始高度 = "ERROR" or 窗口初始高度 < 260)
         窗口初始高度 := 400
+    窗口DPI := MUI_窗口DPI(Gui_winID)
+    画布宽度 := Round(窗口初始宽度 * 窗口DPI / 96)
+    画布高度 := Round(窗口初始高度 * 窗口DPI / 96)
 
     ; 自绘画布（SS_BITMAP 静态控件对鼠标透明，消息统一由父窗口处理）
-    Gui, Add, Picture, 0xE x0 y0 w%窗口初始宽度% h%窗口初始高度% Hwnd现代画布句柄
-    Gui, Add, Edit, x40 y80 w200 h28 -E0x200 -VScroll -Wrap Hwnd搜索框ID v搜索框输入值
+    Gui, Add, Picture, 0xE x0 y0 w%画布宽度% h%画布高度% Hwnd现代画布句柄
+    Gui, Add, Edit, x0 y0 w1 h1 -E0x200 -VScroll -Wrap Hwnd搜索框ID v搜索框输入值
 
-    MUI_初始化(Gui_winID, 现代画布句柄, 搜索框ID, 窗口初始宽度, 窗口初始高度)
+    MUI_初始化(Gui_winID, 现代画布句柄, 搜索框ID, 画布宽度, 画布高度, 窗口DPI)
     MUI_主题(是否深色, 窗口背景颜色, 窗口字体颜色, 现代UI强调色)
     MUI.字体 := 现代字体
     MUI.字号 := 窗口字体大小
@@ -276,33 +281,46 @@ Return
     MUI.提示延迟 := 延迟悬停显示
     MUI.单击跳转 := (单击运行跳转 = "开启" and 参数3 != "全局版") ? 1 : 0
     MUI_布局计算()
+    MUI_移动控件()
     gosub, 构建现代标签栏
     MUI_消息注册()
     ; 第三参数在系统 API 里是 fDrawFocused：true=即使获得焦点也显示提示文字。
     ; 现代窗口显示时焦点会自动落在搜索框上，必须为 true，否则提示一出现就被隐藏。
     EM_SETCUEBANNER(搜索框ID, "搜索路径…", true)
 
-    ;================ 坐标（沿用原逻辑） ================
+    ; 默认贴边使用可见边界，自定义表达式继续用原有坐标变量。
+    默认右侧贴边 := (RegExReplace(窗口初始坐标x, "\s+") = "父窗口X+父窗口W")
+    默认贴边高度 := (RegExReplace(窗口初始坐标y, "\s+") = "父窗口Y+20")
     窗口初始坐标x := Calculate(字符坐标替换(窗口初始坐标x))
     窗口初始坐标y := Calculate(字符坐标替换(窗口初始坐标y))
     if (窗口初始坐标x="" || 窗口初始坐标x="ERROR")
         窗口初始坐标x:=100
     if (窗口初始坐标y="" || 窗口初始坐标y="ERROR")
         窗口初始坐标y:=100
-    if (窗口初始坐标x="0" and 窗口初始坐标y="0"){
+    if (窗口初始坐标x="0" and 窗口初始坐标y="0" and !默认右侧贴边){
         CoordMode, Mouse, Screen
         MouseGetPos, 鼠标位置X, 鼠标位置Y
         窗口初始坐标x:=鼠标位置X
         窗口初始坐标y:=鼠标位置Y
     }
-    SysGet, VirtualWidth, 78
-    SysGet, VirtualHeight, 79
-    if  (VirtualWidth < (窗口初始坐标x + 窗口初始宽度))
-        窗口初始坐标x:= VirtualWidth - 窗口初始宽度 - 5
-    if  (VirtualHeight < (窗口初始坐标y + 窗口初始高度))
-        窗口初始坐标y:= VirtualHeight - 窗口初始高度
-
-    Gui, Show,NoActivate h%窗口初始高度% w%窗口初始宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
+    if (默认右侧贴边) {
+        ; 先在父窗口所在屏上准备隐藏窗口，再用实测的物理尺寸落位。
+        WinGetPos, 父窗暂用X, 父窗暂用Y, , , ahk_id %唯一性%
+        暂用Y := 默认贴边高度 ? 父窗暂用Y : 窗口初始坐标y
+        Gui, Show, Hide h%画布高度% w%画布宽度% X%父窗暂用X% Y%暂用Y%,%窗口标题名称%
+        if (现代窗口贴边(唯一性, Gui_winID, true))
+            Gui, Show, NoActivate
+        Else
+            Gui, Show, NoActivate X%窗口初始坐标x% Y%窗口初始坐标y%
+    } Else {
+        SysGet, VirtualWidth, 78
+        SysGet, VirtualHeight, 79
+        if (VirtualWidth < (窗口初始坐标x + 画布宽度))
+            窗口初始坐标x := VirtualWidth - 画布宽度 - 5
+        if (VirtualHeight < (窗口初始坐标y + 画布高度))
+            窗口初始坐标y := VirtualHeight - 画布高度
+        Gui, Show, NoActivate h%画布高度% w%画布宽度% X%窗口初始坐标x% Y%窗口初始坐标y%,%窗口标题名称%
+    }
     SetTimer, ExitScript, Off
 
     If (参数3="自动弹出"){
@@ -324,8 +342,6 @@ Return
         WinSet, Transparent,%现代透明度%,%窗口标题名称% ahk_class AutoHotkeyGUI
     Sleep, 20
 
-    编辑框位置 := MUI_编辑框位置()
-    GuiControl, MoveDraw, %搜索框ID%, % "X" 编辑框位置.X " Y" 编辑框位置.Y " W" 编辑框位置.W " H" 编辑框位置.H
     MUI_应用圆角()
     MUI_添加阴影(Gui_winID)
 
@@ -371,7 +387,7 @@ Return
     global 是否是第一次中化切换:="是"
     global 是否是第一次置顶:="是"
     global Gs_tcWinID := 参数2  ; 获取当前活动窗口的ID
-    global newX2:="",newY2:=""
+    WinGetPos, newX2, newY2, , , ahk_id %Gs_tcWinID%
     if (Gs_tcWinID=Gui_winID ) or (WinActive("ahk_class Progman")){
         MsgBox, 跟随失败！`n请先点击并激活要跟随的窗口
         Return
@@ -382,7 +398,8 @@ Return
 
 ;[允许gui窗口调整大小]----------------------------------
 GuiSize:
-    MUI_尺寸变化(A_GuiWidth, A_GuiHeight)
+    if (A_EventInfo != 1)
+        MUI_尺寸适配客户区()
 Return
 ;[gui窗口关闭事件]----------------------------------
 GuiClose:
@@ -926,7 +943,6 @@ FollowParentWindow:
     ;======================================================
     ;.....................................................................
     WinGet, active_MinMax, MinMax, ahk_id %Gs_tcWinID%
-    WinGetPos, newX, newY, newW, newH, ahk_id %Gs_tcWinID%
 
     ;判断最大化到最小化的切换..........................................
 
@@ -952,7 +968,8 @@ FollowParentWindow:
             ;WinActivate, ahk_id %Gs_tcWinID%
             ;print("最大化" guiX3 "`n" guiY3)
         } ;Else
-        Return
+        if (!默认右侧贴边)
+            Return
     }Else{
         if (是否是第一次中化切换="是"){
             是否是第一次最大化切换:="是"
@@ -966,7 +983,14 @@ FollowParentWindow:
         }
     }
 
-    ;..........................................
+    if (默认右侧贴边) {
+        if (MUI.拖动模式 != "拖动" and MUI.拖动模式 != "缩放")
+            现代窗口贴边(Gs_tcWinID, Gui_winID)
+        Return
+    }
+
+    ; 自定义位置继续按父窗口左上角的位移量跟随。
+    WinGetPos, newX, newY, , , ahk_id %Gs_tcWinID%
     if (newX = newX2 && newY = newY2)
         Return
 
@@ -982,6 +1006,100 @@ FollowParentWindow:
     global newX2:=newX
     global newY2:=newY
 return
+
+; DWM 可见边界是物理像素。临时统一取矩形、工作区和移动窗口的坐标，
+; 不改变 GUI 本身的 DPI 感知，也不影响其他 AHK 定时器和鼠标消息。
+现代窗口贴边(父窗, 浮窗, 首次 := false) {
+    原Critical := A_IsCritical
+    Critical, On
+    原DPI := DllCall("user32\SetThreadDpiAwarenessContext", "Ptr", -4, "Ptr")
+    if (!原DPI)
+        原DPI := DllCall("user32\SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
+    try {
+        return 现代窗口应用贴边(父窗, 浮窗, 首次, 原DPI != 0 && 原DPI != "")
+    } finally {
+        if (原DPI)
+            DllCall("user32\SetThreadDpiAwarenessContext", "Ptr", 原DPI, "Ptr")
+        Critical, %原Critical%
+    }
+}
+
+现代窗口应用贴边(父窗, 浮窗, 首次, 物理坐标) {
+    global 默认贴边高度
+    static 上次基准X, 上次基准Y, 上次显示器, 上次浮窗宽, 上次浮窗高
+    static 上次浮窗X, 上次浮窗Y, 手动偏移X, 手动偏移Y
+    VarSetCapacity(父窗矩形, 16, 0)
+    VarSetCapacity(浮窗矩形, 16, 0)
+    ; 旧系统没有线程 DPI 上下文时，使用同一坐标空间的 Win32 外框。
+    取得可见边界 := 物理坐标 && (DllCall("dwmapi\DwmGetWindowAttribute", "Ptr", 父窗, "UInt", 9
+        , "Ptr", &父窗矩形, "UInt", 16, "Int") = 0)
+    if (!取得可见边界 || NumGet(父窗矩形, 8, "Int") <= NumGet(父窗矩形, 0, "Int"))
+        if (!DllCall("user32\GetWindowRect", "Ptr", 父窗, "Ptr", &父窗矩形))
+            return false
+    if (!DllCall("user32\GetWindowRect", "Ptr", 浮窗, "Ptr", &浮窗矩形))
+        return false
+
+    父窗左 := NumGet(父窗矩形, 0, "Int")
+    父窗上 := NumGet(父窗矩形, 4, "Int")
+    父窗右 := NumGet(父窗矩形, 8, "Int")
+    浮窗X := NumGet(浮窗矩形, 0, "Int")
+    浮窗Y := NumGet(浮窗矩形, 4, "Int")
+    浮窗宽 := NumGet(浮窗矩形, 8, "Int") - 浮窗X
+    浮窗高 := NumGet(浮窗矩形, 12, "Int") - 浮窗Y
+
+    显示器 := DllCall("user32\MonitorFromWindow", "Ptr", 父窗, "UInt", 2, "Ptr")
+    VarSetCapacity(显示器信息, 40, 0)
+    NumPut(40, 显示器信息, 0, "UInt")
+    if (!DllCall("user32\GetMonitorInfoW", "Ptr", 显示器, "Ptr", &显示器信息))
+        return false
+    工作区左 := NumGet(显示器信息, 20, "Int")
+    工作区上 := NumGet(显示器信息, 24, "Int")
+    工作区右 := NumGet(显示器信息, 28, "Int")
+    工作区下 := NumGet(显示器信息, 32, "Int")
+    最大X := Max(工作区左, 工作区右 - 浮窗宽)
+    最大Y := Max(工作区上, 工作区下 - 浮窗高)
+
+    基准X := 父窗右
+    if (基准X > 最大X && 父窗左 - 浮窗宽 >= 工作区左)
+        基准X := 父窗左 - 浮窗宽
+    基准X := Max(工作区左, Min(基准X, 最大X))
+    基准Y := Max(工作区上, Min(父窗上 + (默认贴边高度 ? 20 : 0), 最大Y))
+
+    if (首次 || 上次基准X = "") {
+        手动偏移X := 0
+        手动偏移Y := 默认贴边高度 ? 0 : 浮窗Y - 基准Y
+    } Else {
+        ; 实际位置的变化来自用户拖动。保留相对偏移，停在屏边时不累积钳制误差。
+        手动偏移X += 浮窗X - 上次浮窗X
+        手动偏移Y += 浮窗Y - 上次浮窗Y
+        上次浮窗X := 浮窗X
+        上次浮窗Y := 浮窗Y
+        if (基准X = 上次基准X && 基准Y = 上次基准Y && 显示器 = 上次显示器
+            && 浮窗宽 = 上次浮窗宽 && 浮窗高 = 上次浮窗高)
+            return true
+    }
+
+    目标X := Max(工作区左, Min(基准X + 手动偏移X, 最大X))
+    目标Y := Max(工作区上, Min(基准Y + 手动偏移Y, 最大Y))
+    if (目标X != 浮窗X || 目标Y != 浮窗Y) {
+        ; 不改变尺寸和 Z 序，也不激活浮窗。
+        if (!DllCall("user32\SetWindowPos", "Ptr", 浮窗, "Ptr", 0, "Int", 目标X, "Int", 目标Y
+            , "Int", 0, "Int", 0, "UInt", 0x215))
+            return false
+        if (DllCall("user32\GetWindowRect", "Ptr", 浮窗, "Ptr", &浮窗矩形)) {
+            目标X := NumGet(浮窗矩形, 0, "Int")
+            目标Y := NumGet(浮窗矩形, 4, "Int")
+        }
+    }
+    上次基准X := 基准X
+    上次基准Y := 基准Y
+    上次显示器 := 显示器
+    上次浮窗宽 := 浮窗宽
+    上次浮窗高 := 浮窗高
+    上次浮窗X := 目标X
+    上次浮窗Y := 目标Y
+    return true
+}
 
 ;[按父窗口位置维护窗口层级]─────────────────────────────────────
 ; 不再用「置顶 / 取消置顶」的开关思路，而是让本窗口在 Z 序里紧贴父窗口上方：
