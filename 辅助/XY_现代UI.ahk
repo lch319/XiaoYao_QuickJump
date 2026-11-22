@@ -17,7 +17,7 @@
 ;   MUI_设置列表(竖杠分隔的字符串, 分隔符)
 ;   MUI_取路径(行号) / MUI_选中路径() / MUI_选择行(行号)
 ;   MUI_滚动(行数) / MUI_标签滚动(像素) / MUI_重绘()
-;   MUI_尺寸变化(宽, 高) / MUI_鼠标在窗口内() / MUI_鼠标在标签区()
+;   MUI_尺寸适配客户区() / MUI_鼠标在窗口内() / MUI_鼠标在标签区()
 ;   MUI_销毁()
 ;
 ; 宿主需要提供的全局变量：Gui_winID、搜索框ID、当前视图标签、文件夹名显示在前
@@ -349,37 +349,82 @@ MUI_搜索框置顶() {
         , "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 }
 
-MUI_尺寸变化(新宽, 新高) {
+MUI_尺寸适配客户区() {
     global MUI
-    if (!MUI.就绪) or (新宽 < 100) or (新高 < 100)
+    if (!MUI.就绪)
         return
-    MUI.像素宽 := 新宽
-    MUI.像素高 := 新高
-    MUI.宽 := 新宽 / MUI.缩放
-    MUI.高 := 新高 / MUI.缩放
-    MUI_布局计算()
-    MUI_移动控件()
-    MUI_应用圆角()
-    MUI_重绘()
+    VarSetCapacity(客户区, 16, 0)
+    if !DllCall("user32\GetClientRect", "Ptr", MUI.窗口, "Ptr", &客户区)
+        return
+    新宽 := NumGet(客户区, 8, "Int"), 新高 := NumGet(客户区, 12, "Int")
+    MUI_更新尺寸(新宽, 新高)
 }
 
-MUI_移动控件() {
+MUI_更新尺寸(新宽, 新高, 新X := "", 新Y := "") {
     global MUI
-    GuiControl, MoveDraw, % MUI.画布, % "X0 Y0 W" MUI.像素宽 " H" MUI.像素高
+    if (新宽 < 100 or 新高 < 100 or (新宽 = MUI.像素宽 and 新高 = MUI.像素高))
+        return
+    原线程设置 := A_IsCritical
+    Critical
+    try {
+        旧宽 := MUI.像素宽, 旧高 := MUI.像素高
+        旧顶部 := MUI.顶部行, 旧标签滚动 := MUI.标签滚动
+        MUI_设置布局尺寸(新宽, 新高)
+        ; 拖动时先绘制完整位图，把实际窗口尺寸变化留到贴图前。
+        位图 := MUI_绘制位图()
+        if (新X != "" and (!位图 or !DllCall("user32\SetWindowPos", "Ptr", MUI.窗口, "Ptr", 0
+            , "Int", 新X, "Int", 新Y, "Int", 新宽, "Int", 新高, "UInt", 0x2014))) {
+            if (位图)
+                DllCall("gdi32\DeleteObject", "Ptr", 位图)
+            MUI.顶部行 := 旧顶部, MUI.标签滚动 := 旧标签滚动
+            MUI_设置布局尺寸(旧宽, 旧高)
+            return
+        }
+        MUI_移动控件(新宽 != 旧宽)
+        MUI_应用圆角(false)
+        if (位图)
+            MUI_贴图(位图)
+        if (新宽 != 旧宽)
+            DllCall("user32\RedrawWindow", "Ptr", MUI.搜索框, "Ptr", 0, "Ptr", 0, "UInt", 0x0001|0x0100|0x0004)
+    } finally {
+        Critical, % 原线程设置 ? 原线程设置 : "Off"
+    }
+}
+
+MUI_设置布局尺寸(宽, 高) {
+    global MUI
+    MUI.像素宽 := 宽
+    MUI.像素高 := 高
+    MUI.宽 := 宽 / MUI.缩放
+    MUI.高 := 高 / MUI.缩放
+    MUI_布局计算()
+}
+
+MUI_移动控件(移动搜索框 := true) {
+    global MUI
+    ; SWP_NOREDRAW | SWP_NOZORDER | SWP_NOACTIVATE：新位图贴好后再画控件。
+    DllCall("user32\SetWindowPos", "Ptr", MUI.画布, "Ptr", 0
+        , "Int", 0, "Int", 0, "Int", MUI.像素宽, "Int", MUI.像素高, "UInt", 0x1C)
+    if (!移动搜索框)
+        return
     P := MUI_编辑框位置()
     S := MUI.缩放
     X := Round(P.X * S), Y := Round(P.Y * S)
     W := Round((P.X + P.W) * S) - X, H := Round((P.Y + P.H) * S) - Y
-    GuiControl, MoveDraw, % MUI.搜索框, % "X" X " Y" Y " W" W " H" H
+    DllCall("user32\SetWindowPos", "Ptr", MUI.搜索框, "Ptr", 0
+        , "Int", X, "Int", Y, "Int", W, "Int", H, "UInt", 0x1C)
 }
 
-MUI_应用圆角() {
-    global MUI, Gui_winID
+MUI_应用圆角(立即重绘 := true) {
+    global MUI
     ; 圆角半径不宜过大：Region 会把圆角外区域裁掉，右下角的缩放热区会被削掉
     圆角 := Round(7 * MUI.缩放)
     ; 圆角区域的右、下边界不含最后一个像素。
-    区域参数 := "0-0 W" (MUI.像素宽 + 1) " H" (MUI.像素高 + 1) " R" 圆角 "-" 圆角
-    WinSet, Region, %区域参数%, % "ahk_id " Gui_winID
+    区域 := DllCall("gdi32\CreateRoundRectRgn", "Int", 0, "Int", 0
+        , "Int", MUI.像素宽 + 1, "Int", MUI.像素高 + 1, "Int", 圆角, "Int", 圆角, "Ptr")
+    ; SetWindowRgn 成功后由系统接管区域句柄。
+    if (区域 and !DllCall("user32\SetWindowRgn", "Ptr", MUI.窗口, "Ptr", 区域, "Int", 立即重绘))
+        DllCall("gdi32\DeleteObject", "Ptr", 区域)
 }
 
 MUI_添加阴影(窗口句柄) {
@@ -766,19 +811,35 @@ MUI_G_取消裁剪(dc) {
 ; 主绘制
 ;--------------------------------------------------------------------------------------
 MUI_重绘() {
-    global MUI, MUI_T, Gui_winID
+    global MUI, Gui_winID
     if (!MUI.就绪) or (!MUI.画布) or !WinExist("ahk_id " Gui_winID)
         return
+    原线程设置 := A_IsCritical
+    Critical
+    try {
+        位图 := MUI_绘制位图()
+        if (位图)
+            MUI_贴图(位图)
+    } finally {
+        Critical, % 原线程设置 ? 原线程设置 : "Off"
+    }
+}
+
+MUI_绘制位图() {
+    global MUI, MUI_T
     if (MUI.宽 < 60 or MUI.高 < 60)
-        return
+        return 0
     MUI_确保标签可见()
     屏幕DC := DllCall("user32\GetDC", "Ptr", 0, "Ptr")
+    if (!屏幕DC)
+        return 0
     内存DC := DllCall("gdi32\CreateCompatibleDC", "Ptr", 屏幕DC, "Ptr")
-    位图 := DllCall("gdi32\CreateCompatibleBitmap", "Ptr", 屏幕DC, "Int", MUI.像素宽, "Int", MUI.像素高, "Ptr")
+    位图 := 内存DC ? DllCall("gdi32\CreateCompatibleBitmap", "Ptr", 屏幕DC, "Int", MUI.像素宽, "Int", MUI.像素高, "Ptr") : 0
     if (!位图) {
-        DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
+        if (内存DC)
+            DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
         DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", 屏幕DC)
-        return
+        return 0
     }
     旧位图 := DllCall("gdi32\SelectObject", "Ptr", 内存DC, "Ptr", 位图, "Ptr")
 
@@ -791,17 +852,19 @@ MUI_重绘() {
     MUI_绘制文字(内存DC)
 
     DllCall("gdi32\SelectObject", "Ptr", 内存DC, "Ptr", 旧位图, "Ptr")
+    DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
+    DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", 屏幕DC)
+    return 位图
+}
+
+MUI_贴图(位图) {
+    global MUI
     旧句柄 := DllCall("user32\SendMessage", "Ptr", MUI.画布, "UInt", 0x172, "Ptr", 0, "Ptr", 位图, "Ptr")
     if (旧句柄)
         DllCall("gdi32\DeleteObject", "Ptr", 旧句柄)
-    DllCall("gdi32\DeleteDC", "Ptr", 内存DC)
-    DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", 屏幕DC)
 
-    ; 换完位图立刻把搜索框同步重画一次。
-    ; WS_CLIPSIBLINGS 已经能防止画布盖住搜索框，但 Static 贴图那一帧和搜索框重画
-    ; 之间仍可能有一瞬间的重叠（不同系统上表现不同），补这一下就彻底看不到闪空了。
-    if (MUI.搜索框)
-        DllCall("user32\RedrawWindow", "Ptr", MUI.搜索框, "Ptr", 0, "Ptr", 0, "UInt", 0x0001|0x0100|0x0080)
+    ; 位图已覆盖整个画布，取消 Static 换图时排队的背景擦除。
+    DllCall("user32\RedrawWindow", "Ptr", MUI.画布, "Ptr", 0, "Ptr", 0, "UInt", 0x0001|0x0020|0x0100)
 }
 
 ;--------------------------------------------------------------------------------------
@@ -1299,7 +1362,7 @@ MUI_WM_MOUSEMOVE(w参数, l参数, 消息号, 句柄) {
             新Y := MUI.缩放窗Y + MUI.缩放窗H - 新高
         } Else if InStr(MUI.缩放方向名, "下")
             新高 := Max(最小高, MUI.缩放窗H + 位移Y)
-        WinMove, ahk_id %Gui_winID%, , %新X%, %新Y%, %新W%, %新高%
+        MUI_更新尺寸(新W, 新高, 新X, 新Y)
         return 0
     }
     if (MUI.拖动模式 = "滚动条") {
@@ -1443,9 +1506,13 @@ MUI_WM_LBUTTONUP(w参数, l参数, 消息号, 句柄) {
     if (!MUI.就绪)
         return 0
     if (MUI.拖动模式 != "") {
+        缩放结束 := (MUI.拖动模式 = "缩放")
+        if (缩放结束)
+            MUI_WM_MOUSEMOVE(w参数, l参数, 消息号, 句柄)
         MUI.拖动模式 := ""
         DllCall("user32\ReleaseCapture")
-        MUI_重绘()
+        if (!缩放结束)
+            MUI_重绘()
     }
     return 0
 }

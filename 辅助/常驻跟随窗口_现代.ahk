@@ -236,7 +236,7 @@ Return
     ; 不要用 +Resize：那会给无边框窗口加一圈真实 WS_THICKFRAME 边框（约 7px/边），
     ; 窗口外框比客户区大，WinSet Region 的圆角就会错位。缩放由 UI 库自己做八向命中。
     ; GUI 和 Win32 共用客户区像素，只有自绘布局按 96 DPI 的设计尺寸计算。
-    Gui, +ToolWindow -Caption -DPIScale +HwndGui_winID
+    Gui, +ToolWindow -Caption -DPIScale +0x02000000 +HwndGui_winID  ; WS_CLIPCHILDREN
     FileAppend,%Gui_winID%`n,%A_Temp%\后台隐藏运行脚本记录.txt
 
     现代背景 := 是否深色 ? "1E2128" : "F7F8FA"
@@ -385,7 +385,8 @@ Return
 
 ;[允许gui窗口调整大小]----------------------------------
 GuiSize:
-    MUI_尺寸变化(A_GuiWidth, A_GuiHeight)
+    if (A_EventInfo != 1)
+        MUI_尺寸适配客户区()
 Return
 ;[gui窗口关闭事件]----------------------------------
 GuiClose:
