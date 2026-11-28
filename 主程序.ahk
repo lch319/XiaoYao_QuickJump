@@ -1014,8 +1014,11 @@ WinActiveList2(窗口列表1111){
         SetTitleMatchMode, 2
         excludedProcesses2 := StrSplit(窗口列表2222, "`n")
         for index, process in excludedProcesses2 {
-            if WinActive(process)
+            if (hwnd := WinActive(process)) {
+                if (WinExist("ahk_class Qt5QWindowIcon ahk_id " hwnd) && WPS_IsSupportedProcess(hwnd))
+                    return WPS_IsFileDialog(hwnd)
                 return true
+            }
         }
     }
     return false
